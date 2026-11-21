@@ -31,7 +31,10 @@ def fetch_forecast(lat: float, lon: float, client: httpx.Client) -> Block:
     except ValueError as e:
         raise ProviderError("Open-Meteo respondió con un formato inesperado.") from e
     if r.status_code != 200 or data.get("error"):
-        raise ProviderError(f"Open-Meteo no entregó datos: {data.get('reason', r.status_code)}")
+        reason = str(data.get("reason", r.status_code))
+        if "limit" in reason.lower() or r.status_code == 429:
+            raise ProviderError("El servicio de pronóstico (Open-Meteo) alcanzó su límite de consultas por hoy.")
+        raise ProviderError(f"El servicio de pronóstico (Open-Meteo) no entregó datos ({r.status_code}).")
     return parse_forecast(data)
 
 

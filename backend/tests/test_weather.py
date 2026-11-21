@@ -33,7 +33,7 @@ def test_open_meteo_rate_limited_falls_back_to_climatology():
     use(open_meteo="limit")
     w = service.get_weather(M, "real", TODAY)
     assert not w["forecast"]["available"]
-    assert "limit" in w["forecast"]["error"]
+    assert "límite" in w["forecast"]["error"]
     assert w["frost_risk"]["basis"] == "climatologia"
 
 

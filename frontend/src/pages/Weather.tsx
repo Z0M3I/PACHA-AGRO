@@ -1,0 +1,148 @@
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { LocationSelector } from '../components/LocationPicker'
+import { Button, Card, DataTag, ErrorBox, Loading, Notice, PageTitle, SimBanner } from '../components/ui'
+import { api } from '../lib/api'
+import { dayLabel, round, updatedAt, weatherIcon } from '../lib/format'
+import { useApp } from '../lib/store'
+import type { Weather as W } from '../lib/types'
+
+const MapView = lazy(() => import('../components/MapView'))
+
+const FROST = {
+  alto: { cls: 'border-rojo bg-rojo-50 text-rojo', title: '❄️ Riesgo ALTO de helada' },
+  medio: { cls: 'border-ocre bg-sol-50 text-sol-ink', title: '❄️ Puede haber helada' },
+  bajo: { cls: 'border-bosque-600 bg-brote text-bosque-800', title: '✅ Riesgo bajo de helada' },
+  desconocido: { cls: 'border-[#77756d] bg-[#ecebe5] text-[#3f3e3a]', title: '⚪ Riesgo de helada desconocido' },
+}
+
+export default function Weather() {
+  const { municipalityId, setMunicipalityId } = useApp()
+  const [mode, setMode] = useState<'real' | 'simulado'>('real')
+  const [wx, setWx] = useState<W | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const [map, setMap] = useState(false)
+
+  const load = () => {
+    if (!municipalityId) return
+    setWx(null); setErr(null)
+    api<W>(`/api/weather?municipality_id=${municipalityId}&mode=${mode}`).then(setWx).catch(e => setErr(e.message))
+  }
+  useEffect(load, [municipalityId, mode])
+
+  return (
+    <div className="space-y-4">
+      <PageTitle icon="🌦️" title="¿Cómo estará el clima?" />
+      <LocationSelector value={municipalityId} onChange={id => { setMode('real'); setMunicipalityId(id) }} />
+      {!municipalityId ? null : err ? <ErrorBox message={err} onRetry={load} /> : !wx ? <Loading text="Buscando el pronóstico…" /> : (
+        <>
+          {wx.mode === 'simulado' && <SimBanner />}
+          <FrostCard wx={wx} />
+
+          {wx.forecast.available ? (
+            <>
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-musgo">Temperatura ahora</div>
+                    <div className="text-5xl font-bold text-bosque">{round(wx.forecast.current_temp)}</div>
+                  </div>
+                  <div className="text-right text-sm text-musgo">
+                    <DataTag kind={wx.forecast.kind} /><div className="mt-1">{wx.forecast.current_time?.replace('T', ' ')}</div>
+                  </div>
+                </div>
+              </Card>
+              <section aria-labelledby="pron">
+                <h2 id="pron" className="mb-2 text-xl font-bold">Próximos 7 días</h2>
+                <ul className="divide-y divide-linea overflow-hidden rounded-2xl border border-linea bg-papel">
+                  {wx.forecast.daily.map(d => {
+                    const w = weatherIcon(d.weather_code, d.storm)
+                    const frosty = d.tmin !== null && d.tmin <= 0
+                    return (
+                      <li key={d.date} className="grid grid-cols-[4.3rem_2.2rem_1fr_auto] items-center gap-2 px-3 py-3">
+                        <span className="font-bold">{dayLabel(d.date)}</span>
+                        <span className="text-2xl" title={w.text} aria-label={w.text}>{w.icon}</span>
+                        <span className="whitespace-nowrap leading-tight"><span className="block text-base">💧 {d.precip_mm?.toFixed(0) ?? '—'} mm</span>{d.precip_prob !== null && <span className="block text-sm text-musgo">{d.precip_prob}% prob.</span>}</span>
+                        <span className="text-right text-lg">
+                          <span className={frosty ? 'font-bold text-rojo' : 'text-[#24435f]'}>{frosty && '❄️'}{round(d.tmin)}</span>
+                          <span className="text-musgo"> / </span><span className="font-semibold">{round(d.tmax)}</span>
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+                <p className="mt-1 text-sm text-musgo">Mínima / máxima a 2 m del suelo. A ras del suelo puede hacer más frío.</p>
+              </section>
+            </>
+          ) : (
+            <Notice tone="warn">
+              <p className="font-bold">No hay pronóstico disponible en este momento.</p>
+              <p className="mt-1">{wx.forecast.error}</p>
+              <p className="mt-1">Puede intentar más tarde o ver una demostración con datos simulados.</p>
+              <div className="mt-3 flex flex-wrap gap-2"><Button variant="secondary" onClick={load}>Intentar de nuevo</Button>
+                <Button variant="secondary" onClick={() => setMode('simulado')}>Ver demostración</Button></div>
+            </Notice>
+          )}
+          {wx.mode === 'simulado' && <Button variant="secondary" className="w-full" onClick={() => setMode('real')}>Volver a datos reales</Button>}
+
+          <StormCard wx={wx} />
+          {wx.recent.available && <RecentCard wx={wx} />}
+
+          <Card className="border-2 border-tierra">
+            <h2 className="text-lg font-bold">📢 Avisos oficiales (SENAMHI)</h2>
+            <p className="mt-1">{wx.official_alerts.message}</p>
+            <a className="mt-2 inline-block min-h-12 py-2 font-semibold text-bosque underline underline-offset-4" href={wx.official_alerts.url} target="_blank" rel="noopener noreferrer">Abrir senamhi.gob.bo ↗</a>
+          </Card>
+
+          {!map ? <Button variant="secondary" className="w-full" onClick={() => setMap(true)}>🗺️ Ver ubicación en el mapa</Button>
+            : <Suspense fallback={<Loading text="Cargando mapa…" />}><MapView lat={wx.location.lat} lon={wx.location.lon} label={wx.location.name} /></Suspense>}
+
+          <Card className="text-sm text-musgo">
+            <p><strong>Fuentes:</strong> {wx.forecast.source}{wx.recent.available ? ` · ${wx.recent.source}` : ''}{wx.climatology.available ? ` · ${wx.climatology.source}` : ''}.</p>
+            <p>Actualizado: {updatedAt(wx.forecast.fetched_at ?? wx.generated_at)}</p>
+            {wx.forecast.extra?.license && <p>{wx.forecast.extra.license}</p>}
+            <p>Coordenadas aproximadas del centro del municipio ({wx.location.lat}, {wx.location.lon}).</p>
+          </Card>
+        </>
+      )}
+    </div>
+  )
+}
+
+function FrostCard({ wx }: { wx: W }) {
+  const f = wx.frost_risk
+  const ui = FROST[f.level]
+  return (
+    <section className={`rounded-2xl border-2 p-4 ${ui.cls}`} aria-live="polite">
+      <h2 className="text-[1.35rem] font-bold">{ui.title}</h2>
+      {f.basis === 'pronostico' && f.min_tmin != null && <p className="mt-1 text-lg">Mínima más baja: <strong>{round(f.min_tmin)}</strong> el {dayLabel(f.date!)} (próximos 7 días).</p>}
+      {f.basis === 'climatologia' && <p className="mt-1 text-lg">Sin pronóstico. En este mes suele haber unos <strong>{Math.round(f.frost_days_month ?? 0)} días con helada</strong> (promedio histórico).</p>}
+      {f.basis === null && <p className="mt-1">No hay datos suficientes para estimar el riesgo.</p>}
+      {f.basis && <div className="mt-2"><DataTag kind={wx.mode === 'simulado' ? 'simulado' : f.basis} /></div>}
+    </section>
+  )
+}
+
+function StormCard({ wx }: { wx: W }) {
+  const s = wx.storm_risk
+  if (s.level === 'desconocido') return null
+  return (
+    <Card className={s.level === 'posible' ? 'border-2 border-ocre bg-sol-50' : ''}>
+      <h2 className="text-lg font-bold">{s.level === 'posible' ? '⛈️ Tormentas posibles' : '🌤️ Sin tormentas pronosticadas'}</h2>
+      {s.days.length > 0 && <p className="mt-1">Días: {s.days.map(d => dayLabel(d)).join(', ')}</p>}
+      <p className="mt-1 text-musgo">{s.note}</p>
+    </Card>
+  )
+}
+
+function RecentCard({ wx }: { wx: W }) {
+  const r = wx.recent
+  const total = r.daily.reduce((a, d) => a + (d.precip_mm ?? 0), 0)
+  const coldest = Math.min(...r.daily.map(d => d.tmin ?? 99))
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-bold">📈 Lo que pasó los últimos días</h2><DataTag kind="estimacion" /></div>
+      <p className="mt-1">Lluvia acumulada: <strong>{total.toFixed(0)} mm</strong> en {r.daily.length} días · Mínima más baja: <strong>{round(coldest)}</strong></p>
+      <p className="mt-1 text-sm text-musgo">Hasta el {r.extra?.last_date}. {r.source}. Los datos llegan con algunos días de retraso.</p>
+    </Card>
+  )
+}
