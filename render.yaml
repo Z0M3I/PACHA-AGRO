@@ -1,0 +1,31 @@
+# Blueprint de Render: crea el servicio web y la base PostgreSQL.
+# En Render: New + → Blueprint → elegir este repositorio.
+services:
+  - type: web
+    name: agrobolivia
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_PHONE
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SEED_DEMO
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agrobolivia-db
+          property: connectionString
+
+databases:
+  - name: agrobolivia-db
+    plan: free
+    region: oregon
+    databaseName: agrobolivia
+    user: agrobolivia

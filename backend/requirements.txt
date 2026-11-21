@@ -5,5 +5,5 @@ pydantic==2.10.4
 pydantic-settings==2.7.0
 httpx==0.28.1
 pyjwt==2.10.1
-# Para PostgreSQL en producción descomente:
-# psycopg[binary]==3.2.3
+# Driver de PostgreSQL (producción):
+psycopg[binary]==3.2.3

@@ -73,6 +73,13 @@ cd frontend && npm run dev
 4. **WhatsApp** (agricultora 70000002): "¿Cuándo es la reunión de mi comunidad?" → "SI" → la asistencia se registra. "Quiero avisar que cayó granizo en mi zona." → queda como *observación comunitaria*.
 5. **Aprender**: lección "¿Qué es una helada?" con pregunta.
 
+## Desplegar
+
+- **Render (recomendado):** *New + → Blueprint* → elegir este repositorio. `render.yaml` crea el servicio (Docker) y la base PostgreSQL; solo pide `ADMIN_PHONE` y `ADMIN_PASSWORD`.
+- **Vercel (alternativa):** ya configurado con `vercel.json` y `api/index.py`; requiere conectar PostgreSQL (Neon).
+
+Guía paso a paso de ambos: [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
+
 ## Pruebas
 
 ```bash
@@ -96,6 +103,7 @@ Resultados actuales: **51/51** backend, **3/3** unitarias frontend, **13/13** ex
 - [docs/FUENTES_DATOS.md](docs/FUENTES_DATOS.md) — evaluación de SENAMHI, NASA POWER y Open-Meteo.
 - [docs/WHATSAPP.md](docs/WHATSAPP.md) — integración oficial, consentimiento, plantillas, costos y pasos para conectar.
 - [docs/PRUEBAS.md](docs/PRUEBAS.md) — casos de prueba y resultados.
+- [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md) — despliegue en Render (recomendado) o Vercel.
 - [docs/LIMITACIONES.md](docs/LIMITACIONES.md) — lo que el prototipo **no** hace todavía.
 
 ## Aviso
