@@ -28,6 +28,39 @@ def _make_engine(url: str):
     return create_engine(url, **kwargs)
 
 
+# Columnas agregadas después de la primera versión. `create_all` no altera tablas existentes,
+# así que una base ya desplegada (p. ej. PostgreSQL en Render) las recibe aquí.
+# (tabla, columna, tipo SQL compatible con SQLite y PostgreSQL)
+ADDED_COLUMNS = [
+    ("users", "crop_interests", "VARCHAR(200) DEFAULT ''"),
+    ("outbound_messages", "wa_message_id", "VARCHAR(128)"),
+    ("outbound_messages", "notice_id", "INTEGER"),
+    ("outbound_messages", "error", "VARCHAR(300)"),
+    ("outbound_messages", "updated_at", "TIMESTAMP"),
+]
+
+
+def ensure_columns(eng=None) -> list[str]:
+    """Migración mínima e idempotente: agrega columnas faltantes. Devuelve las que agregó."""
+    from sqlalchemy import inspect, text
+    from sqlalchemy.exc import SQLAlchemyError
+
+    eng = eng or engine
+    added = []
+    insp = inspect(eng)
+    tables = set(insp.get_table_names())
+    for table, column, ddl in ADDED_COLUMNS:
+        if table not in tables or column in {c["name"] for c in insp.get_columns(table)}:
+            continue
+        try:
+            with eng.begin() as conn:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
+            added.append(f"{table}.{column}")
+        except SQLAlchemyError:
+            pass  # otra instancia la agregó al mismo tiempo
+    return added
+
+
 def init_db() -> None:
     """Crea tablas y datos iniciales. Seguro de llamar varias veces y desde instancias en paralelo."""
     from sqlalchemy.exc import SQLAlchemyError
@@ -38,6 +71,7 @@ def init_db() -> None:
         Base.metadata.create_all(engine)
     except SQLAlchemyError:
         pass  # otra instancia la creó al mismo tiempo
+    ensure_columns(engine)
     with SessionLocal() as db:
         try:
             seed(db)

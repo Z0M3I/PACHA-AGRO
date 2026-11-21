@@ -1,0 +1,11 @@
+{
+  "name": "AgroBolivia",
+  "short_name": "AgroBolivia",
+  "description": "Clima, siembra y comunidad para agricultores de Bolivia.",
+  "lang": "es-BO",
+  "start_url": "/#/",
+  "display": "standalone",
+  "background_color": "#FAF6EE",
+  "theme_color": "#1E4A2C",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

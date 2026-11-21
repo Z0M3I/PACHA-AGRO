@@ -28,6 +28,14 @@ def status():
             "SIMULADOR: WhatsApp no está conectado. Las conversaciones y recordatorios son simulados."}
 
 
+@router.get("/templates")
+def templates():
+    """Contratos de plantillas para registrar en Meta (los mensajes proactivos solo pueden usar plantillas aprobadas)."""
+    from app.services.whatsapp.templates import TEMPLATE_CONTRACTS
+
+    return TEMPLATE_CONTRACTS
+
+
 @router.post("/simulate")
 def simulate(body: ChatIn, request: Request, mode: str = Query("real", pattern="^(real|simulado)$"),
              user: User | None = Depends(optional_user), db: Session = Depends(get_db)):
@@ -66,8 +74,13 @@ async def receive(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(401, "Firma inválida.")
     payload = json.loads(raw)
     channel = get_channel()
+    handled = {"messages": 0, "statuses": 0}
     for entry in payload.get("entry", []):
         for change in entry.get("changes", []):
+            # Estados de entrega de mensajes salientes (adaptado de PACHAAGRO).
+            for st in change.get("value", {}).get("statuses", []):
+                if update_message_status(db, st.get("id", ""), st.get("status", ""), (st.get("errors") or [{}])[0].get("title")):
+                    handled["statuses"] += 1
             for msg in change.get("value", {}).get("messages", []):
                 if msg.get("type") != "text":
                     continue
@@ -75,4 +88,28 @@ async def receive(request: Request, db: Session = Depends(get_db)):
                 user = db.scalar(select(User).where(User.phone == phone, User.is_active.is_(True)))
                 for reply in assistant.handle(db, f"wa:{phone}", msg["text"]["body"], user):
                     channel.send_text(phone, reply)
-    return {"ok": True}
+                handled["messages"] += 1
+    db.commit()
+    return {"ok": True, **handled}
+
+
+META_STATUS = {"sent": "enviado", "delivered": "entregado", "read": "leido", "failed": "fallido"}
+_ORDER = ["simulado", "enviado", "entregado", "leido"]
+
+
+def update_message_status(db: Session, wa_id: str, meta_status: str, error: str | None = None) -> bool:
+    """Actualiza el historial con el estado que informa Meta. No retrocede (leído no vuelve a entregado)."""
+    new = META_STATUS.get(meta_status)
+    if not wa_id or not new:
+        return False
+    msg = db.scalar(select(OutboundMessage).where(OutboundMessage.wa_message_id == wa_id))
+    if msg is None:
+        return False
+    if new != "fallido" and msg.status in _ORDER and _ORDER.index(new) <= _ORDER.index(msg.status):
+        return True
+    from app.models import utcnow
+
+    msg.status, msg.updated_at = new, utcnow()
+    if error:
+        msg.error = error[:300]
+    return True

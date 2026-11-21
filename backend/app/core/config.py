@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     whatsapp_verify_token: str = ""
     whatsapp_app_secret: str = ""
     whatsapp_api_version: str = "v21.0"
+    whatsapp_template_meeting: str = ""
+    whatsapp_template_notice: str = ""
+
+    # Fuente meteorológica oficial con contrato normalizado (p. ej. un servicio de SENAMHI habilitado).
+    # No existe una API pública documentada: solo se usa si se configura. Ver docs/FUENTES_DATOS.md.
+    official_weather_url: str = ""
+    official_weather_key: str = ""
 
     frontend_dist: str = "../frontend/dist"
 

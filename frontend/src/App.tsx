@@ -14,12 +14,15 @@ const CommunityDetail = lazy(() => import('./pages/CommunityDetail'))
 const WhatsApp = lazy(() => import('./pages/WhatsApp'))
 const Learn = lazy(() => import('./pages/Learn'))
 const Admin = lazy(() => import('./pages/Admin'))
+const Notices = lazy(() => import('./pages/Notices'))
+const Coverage = lazy(() => import('./pages/Coverage'))
+const Legal = lazy(() => import('./pages/Legal'))
 const Auth = lazy(() => import('./pages/Auth').then(m => ({ default: m.Login })))
 const Register = lazy(() => import('./pages/Auth').then(m => ({ default: m.Register })))
 const Profile = lazy(() => import('./pages/Auth').then(m => ({ default: m.Profile })))
 
 function Page({ parts }: { parts: string[] }) {
-  const [a, b] = parts
+  const [a, b, c] = parts
   switch (a) {
     case undefined: return <Home />
     case 'escritorio':
@@ -35,7 +38,11 @@ function Page({ parts }: { parts: string[] }) {
     case 'clima': return <Weather />
     case 'comunidad': return b && /^\d+$/.test(b) ? <CommunityDetail id={Number(b)} /> : <CommunityHome />
     case 'whatsapp': return <WhatsApp />
-    case 'aprender': return <Learn lessonId={b} />
+    case 'aprender': return <Learn lessonId={b} itemId={c} />
+    case 'avisos': return <Notices />
+    case 'cobertura': return <Coverage />
+    case 'privacidad': return <Legal doc="privacidad" />
+    case 'terminos': return <Legal doc="terminos" />
     case 'ingresar': return <Auth />
     case 'registro': return <Register />
     case 'perfil': return <Profile />
@@ -48,7 +55,8 @@ export default function App() {
   const parts = useRoute()
   const { user } = useApp()
   const section = parts[0] ?? ''
-  const nav = section === 'escritorio' ? 'sembrar' : section
+  // Avisos se abre desde Clima; cobertura y páginas legales no tienen pestaña propia.
+  const nav = section === 'escritorio' ? 'sembrar' : section === 'avisos' ? 'clima' : section
   const wide = ['', 'clima', 'escritorio'].includes(section) || parts[1] === 'comparar'
   return (
     <div className="min-h-screen pb-nav">

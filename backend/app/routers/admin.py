@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import admin_user
-from app.models import Attendance, Community, Meeting, Membership, Notice, Observation, OutboundMessage, User
+from app.models import Attendance, Community, Meeting, Membership, Notice, Observation, OutboundMessage, RegionalNotice, User
 from app.routers.communities import community_out
-from app.schemas import RoleIn
+from app.schemas import RoleIn, UserRoleIn
 from app.services.activity import log
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -44,6 +44,27 @@ def decide(cid: int, decision: str, admin: User = Depends(admin_user), db: Sessi
 def users(admin: User = Depends(admin_user), db: Session = Depends(get_db)):
     return [{"id": u.id, "full_name": u.full_name, "phone_last4": u.phone[-4:], "role": u.role, "is_demo": u.is_demo,
              "is_active": u.is_active, "whatsapp_opt_in": u.whatsapp_opt_in} for u in db.scalars(select(User).order_by(User.id))]
+
+
+@router.post("/users/{uid}/role")
+def set_user_role(uid: int, body: UserRoleIn, admin: User = Depends(admin_user), db: Session = Depends(get_db)):
+    """Asigna el rol global de editor de contenido (o lo quita). Nunca otorga 'admin'."""
+    u = db.get(User, uid)
+    if u is None or u.role == "admin":
+        raise HTTPException(400, "No se puede cambiar el rol de esta cuenta.")
+    u.role = body.role
+    log(db, "rol_global", f"{u.full_name}: {body.role}", admin.id)
+    db.commit()
+    return {"id": u.id, "role": u.role}
+
+
+@router.get("/messages")
+def messages(admin: User = Depends(admin_user), db: Session = Depends(get_db)):
+    """Historial de mensajes salientes con su estado (simulado, enviado, entregado, leído, fallido)."""
+    rows = db.execute(select(OutboundMessage, User).join(User, User.id == OutboundMessage.user_id)
+                      .order_by(OutboundMessage.id.desc()).limit(100)).all()
+    return [{"id": m.id, "user_name": u.full_name, "template": m.template, "channel": m.channel, "status": m.status,
+             "error": m.error, "created_at": m.created_at.isoformat(timespec="minutes")} for m, u in rows]
 
 
 @router.post("/users/{uid}/deactivate")
@@ -85,4 +106,6 @@ def reports(admin: User = Depends(admin_user), db: Session = Depends(get_db)):
         "meetings": count(Meeting), "attendance_responses": count(Attendance), "notices": count(Notice),
         "observations": count(Observation), "observations_by_kind": dict(db.execute(select(Observation.kind, func.count()).group_by(Observation.kind)).all()),
         "outbound_simulated": count(OutboundMessage, OutboundMessage.status == "simulado"),
+        "regional_notices_active": count(RegionalNotice, RegionalNotice.archived.is_(False)),
+        "editors": count(User, User.role == "editor"),
     }

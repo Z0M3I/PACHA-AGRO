@@ -8,6 +8,7 @@ const sections = [
   { href: '#/sembrar/comparar', title: 'Comparar suelos', text: 'Vea cómo cambia la orientación si varía la humedad del terreno.' },
   { href: '#/comunidad', title: 'Comunidad', text: 'Consulte avisos, participe en reuniones y registre observaciones del campo.' },
   { href: '#/aprender', title: 'Guías de campo', text: 'Aprenda a interpretar heladas, lluvias y humedad del suelo.' },
+  { href: '#/avisos', title: 'Avisos para el campo', text: 'Avisos de la plataforma por zona o cultivo. No son avisos oficiales.' },
 ]
 
 export default function Home() {
@@ -30,6 +31,11 @@ export default function Home() {
         ))}
       </nav>
       <p className="site-note">La orientación de siembra usa reglas experimentales pendientes de validación agronómica.</p>
+      <nav className="home-legal" aria-label="Información">
+        <a className="site-text-link" href="#/cobertura">Cobertura nacional</a>
+        <a className="site-text-link" href="#/privacidad">Privacidad</a>
+        <a className="site-text-link" href="#/terminos">Términos</a>
+      </nav>
     </>
   )
 }

@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import get_settings
 from app import db as dbmod
-from app.routers import admin, auth, catalog, communities, education, recommendations, whatsapp
+from app.routers import admin, auth, catalog, communities, education, notices, recommendations, whatsapp
 
 
 @asynccontextmanager
@@ -45,7 +45,8 @@ async def validation_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(status_code=422, content={"detail": "Revise los datos ingresados.", "errors": msgs})
 
 
-for r in (auth.router, catalog.router, recommendations.router, communities.router, admin.router, education.router, whatsapp.router):
+for r in (auth.router, catalog.router, recommendations.router, communities.router, admin.router, education.router,
+          notices.router, whatsapp.router):
     app.include_router(r)
 
 

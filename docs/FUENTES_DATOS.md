@@ -19,3 +19,18 @@ Verificado durante el desarrollo el 21-11-2026 desde el entorno de desarrollo.
 ## Pruebas reproducibles
 
 `backend/tests/fixtures/` contiene respuestas **reales** de NASA POWER para Oruro descargadas el 21-11-2026 y una respuesta de Open-Meteo con el **formato documentado** y valores sintéticos (porque la API estaba limitada ese día). Las pruebas no dependen de la red.
+
+## Adaptador para una fuente oficial (contrato normalizado)
+
+Adaptado de PACHAAGRO (`backend/app/services/weather/official.py`). No se inventa ningún endpoint: si una institución (por ejemplo, SENAMHI mediante un convenio) habilita un servicio, basta con que responda este contrato y configurar `OFFICIAL_WEATHER_URL` y, si aplica, `OFFICIAL_WEATHER_KEY` (se envía como `Authorization: Bearer`).
+
+```
+GET {OFFICIAL_WEATHER_URL}?lat=-17.97&lon=-67.11
+{ "source": {"name": "...", "url": "https://...", "official": true},
+  "updated_at": "2026-11-21T08:00:00-04:00",
+  "current": {"temperature_c": 6.4, "weather_code": 2},
+  "daily": [{"date": "2026-11-21", "temp_min_c": -1.2, "temp_max_c": 18.0,
+             "precipitation_mm": 0.0, "precipitation_probability": 10, "weather_code": 2}] }
+```
+
+Orden: fuente oficial (si está configurada) → Open-Meteo → historial NASA POWER. Si la fuente oficial falla o responde en otro formato, se usa Open-Meteo y el error queda en `forecast.extra.fallback_from`. La pantalla de Clima muestra «Pronóstico de fuente oficial» solo cuando `official: true`. Probado con respuestas simuladas; no se probó con un servicio real.

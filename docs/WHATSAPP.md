@@ -26,6 +26,16 @@ Webhook Meta  ──┘   intents (reglas en español) └─ CloudAPIChannel (s
 | "SI" / "NO" | Registra asistencia (canal `whatsapp_sim`) |
 | "Quiero avisar que cayó granizo en mi zona." | Pide confirmación → crea *observación comunitaria* (requiere cuenta y membresía aprobada) |
 | "BAJA" / "ALTA" | Revoca / otorga consentimiento |
+| "AVISOS" (o 5) | Avisos regionales vigentes para su zona y cultivos, marcados como no oficiales |
+| "GUIAS" / "GUIAS de quinua" (o 6) | Guías de la biblioteca, filtradas por cultivo |
+| "CULTIVOS" | Sus cultivos de interés |
+| "CLIMA Challapata" o solo "Challapata" | Guarda el municipio y responde el clima |
+
+## Plantillas y estados de entrega (adaptado de PACHAAGRO)
+
+- Contratos de plantilla en `backend/app/services/whatsapp/templates.py` y en `GET /api/whatsapp/templates`: `recordatorio_reunion` y `aviso_regional` (categoría *utilidad*, español). Todas terminan con «Responda BAJA…». Los nombres se pueden cambiar con `WHATSAPP_TEMPLATE_MEETING` y `WHATSAPP_TEMPLATE_NOTICE`.
+- Al enviar por la Cloud API se guarda el id de mensaje de Meta. El webhook procesa `statuses` y actualiza el historial: `simulado → enviado → entregado → leído` (nunca retrocede) o `fallido` con el motivo. El administrador ve el historial en su panel.
+- Los avisos regionales se notifican solo a personas con consentimiento cuyo municipio o cultivos coinciden con el alcance del aviso.
 
 ## Cumplimiento de la plataforma oficial (para la conexión real)
 

@@ -65,6 +65,7 @@ body { background: var(--color-crema); color: var(--color-tinta); font-family: v
 .home-sections a { display: block; padding: .9rem 0; border-top: 1px solid var(--color-linea); }
 .home-sections a:hover h2 { text-decoration: underline; text-underline-offset: .25em; }
 .home-sections p { margin-top: .35rem; color: var(--color-musgo); }
+.home-legal { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; margin-top: .5rem; font-size: .9rem; }
 
 .section-nav { display: flex; gap: .5rem 1.25rem; flex-wrap: wrap; border-bottom: 1px solid var(--color-linea); margin-bottom: 1.5rem; }
 .section-nav a { padding: .6rem 0; border-bottom: 2px solid transparent; color: var(--color-musgo); }
@@ -97,7 +98,7 @@ body { background: var(--color-crema); color: var(--color-tinta); font-family: v
 .compare-error { color: var(--color-rojo); }
 
 @media (min-width: 39rem) {
-  .home-sections { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .home-sections { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .compare-form, .compare-result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (min-width: 56rem) {

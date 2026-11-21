@@ -8,6 +8,8 @@ const fs = require('fs')
 const path = require('path')
 
 const BASE = process.argv[2] || 'http://localhost:8000'
+const ADMIN_PHONE = process.env.ADMIN_PHONE || '70000000'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin12345'
 const OUT = path.join(__dirname, 'output')
 fs.mkdirSync(OUT, { recursive: true })
 const results = []
@@ -30,6 +32,8 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     return p
   }
   const btn = (p, name) => p.getByRole('button', { name }).first()
+  // Campo por el texto exacto de su etiqueta (los selectores incluyen el texto de sus opciones en el nombre accesible)
+  const field = (p, label) => p.locator(`label:has(> span:text-is("${label}")) :is(input, select, textarea)`)
   const login = async (p, phoneNo) => {
     await p.goto(`${BASE}/#/ingresar`)
     await p.fill('input[autocomplete=tel]', phoneNo); await p.fill('input[type=password]', 'demo1234')
@@ -166,7 +170,7 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
   await test('Adaptación móvil: sin desplazamiento horizontal en todas las pantallas (320 px)', async () => {
     const p = await newPage({ viewport: { width: 320, height: 640 }, isMobile: true })
     const bad = []
-    for (const r of ['', 'sembrar', 'sembrar/comparar', 'clima', 'comunidad', 'whatsapp', 'aprender', 'aprender/granizo', 'ingresar', 'registro']) {
+    for (const r of ['', 'sembrar', 'sembrar/comparar', 'clima', 'comunidad', 'whatsapp', 'aprender', 'aprender/granizo', 'aprender/biblioteca', 'aprender/biblioteca/ficha-cultivo-quinua', 'avisos', 'cobertura', 'privacidad', 'terminos', 'ingresar', 'registro']) {
       await p.goto(`${BASE}/#/${r}`); await p.waitForTimeout(600)
       const w = await p.evaluate(() => document.documentElement.scrollWidth)
       if (w > 320) bad.push(`${r || 'inicio'}:${w}`)
@@ -210,6 +214,90 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     const ms = Date.now() - t0
     assert(ms < 8000, `tardó ${ms} ms`)
     return `acciones visibles en ${(ms / 1000).toFixed(1)} s`
+  })
+
+  // ---- Funciones adaptadas de PACHAAGRO ----
+
+  await test('Avisos: públicos sin cuenta, filtrados por zona y marcados como no oficiales', async () => {
+    const p = await newPage()
+    await p.addInitScript(() => localStorage.setItem('agb_municipality', 'or-challapata'))
+    await p.goto(`${BASE}/#/avisos`)
+    await p.getByText('Ejemplo: noches frías en el altiplano orureño').waitFor()
+    assert(await p.getByText('feria de semillas nativas en Cochabamba').count() === 0, 'muestra avisos de otra zona en "Mi zona"')
+    assert(await p.getByText('no avisos oficiales', { exact: false }).count() > 0, 'falta aclaración de no oficial')
+    await p.getByRole('tab', { name: /Todos/ }).click()
+    await p.getByText('feria de semillas nativas en Cochabamba').waitFor()
+    await p.screenshot({ path: `${OUT}/avisos.png`, fullPage: true })
+  })
+
+  await test('Cultivos de interés: al marcar papa aparecen los avisos de papa', async () => {
+    const p = await newPage()
+    await login(p, '70000002')
+    await p.goto(`${BASE}/#/perfil`)
+    const papa = p.getByRole('button', { name: /Papa/ })
+    if ((await papa.getAttribute('aria-pressed')) !== 'true') { await papa.click(); await p.getByText('Guardado').waitFor() }
+    await p.goto(`${BASE}/#/avisos`)
+    await p.getByText('Revisión preventiva de riego antes de la campaña de papa').waitFor()
+    await p.goto(`${BASE}/#/perfil`); await papa.click(); await p.getByText('Guardado').waitFor()  // deja el estado como estaba
+  })
+
+  await test('Editor: el administrador nombra editor y este publica un aviso segmentado', async () => {
+    const admin = await newPage()
+    await admin.goto(`${BASE}/#/ingresar`)
+    await admin.fill('input[autocomplete=tel]', ADMIN_PHONE); await admin.fill('input[type=password]', ADMIN_PASSWORD)
+    await btn(admin, /^Ingresar$/).click(); await admin.waitForURL(/comunidad/)
+    const ed = await newPage()
+    const num = '6' + String(Math.floor(Math.random() * 1e7)).padStart(7, '0')
+    const potosi = `Prueba e2e ${num}: aviso para Potosí`  // único por corrida
+    await ed.goto(`${BASE}/#/registro`)
+    await ed.fill('input[autocomplete=name]', 'Elena Editora'); await ed.fill('input[autocomplete=tel]', num); await ed.fill('input[type=password]', 'clave123')
+    await btn(ed, /Crear cuenta/).click(); await ed.waitForURL(/comunidad/)
+    assert((await ed.evaluate(async () => (await fetch('/api/notices', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('agb_token') }, body: JSON.stringify({ title: 'Intento sin permiso', summary: 'No debería publicarse' }) })).status)) === 403, 'publicó sin ser editor')
+    await admin.goto(`${BASE}/#/admin`)
+    await admin.locator('li', { hasText: 'Elena Editora' }).getByRole('button', { name: 'Hacer editor' }).click()
+    await admin.locator('li', { hasText: 'Elena Editora' }).getByRole('button', { name: 'Quitar editor' }).waitFor()
+    await ed.reload(); await ed.goto(`${BASE}/#/admin`)
+    await ed.getByText('Usted es editor de contenido.').waitFor()
+    assert(await ed.getByText('Comunidades por aprobar').count() === 0, 'el editor ve secciones de administrador')
+    await field(ed, 'Título').fill(potosi)
+    await field(ed, 'Resumen (lo que llega por WhatsApp)').fill('Aviso de prueba solo para el departamento de Potosí.')
+    await field(ed, '¿Para quién?').selectOption('departamento')
+    await field(ed, 'Departamento').selectOption('potosi')
+    await btn(ed, /Publicar aviso/).click(); await ed.getByText('Aviso publicado').waitFor()
+    await ed.locator('div', { hasText: potosi }).getByRole('button', { name: /Enviar por WhatsApp/ }).last().click()
+    await ed.getByText('SIMULADOR').waitFor()
+    const pub = await newPage()
+    await pub.addInitScript(() => localStorage.setItem('agb_municipality', 'pt-uyuni'))
+    await pub.goto(`${BASE}/#/avisos`); await pub.getByText(potosi).waitFor()
+    const other = await newPage()
+    await other.addInitScript(() => localStorage.setItem('agb_municipality', 'or-oruro'))
+    await other.goto(`${BASE}/#/avisos`); await other.getByText('Actualice sus cultivos de interés').waitFor()
+    assert(await other.getByText(potosi).count() === 0, 'aviso de Potosí visible en Oruro')
+  })
+
+  await test('Biblioteca: filtros por cultivo y tipo, detalle con fuente', async () => {
+    const p = await newPage()
+    await p.goto(`${BASE}/#/aprender/biblioteca`)
+    await p.getByText('de 8 recursos').waitFor()
+    await field(p, 'Cultivo').selectOption('papa')
+    assert(await p.getByText('Ficha de cultivo: quinua').count() === 0, 'filtro de cultivo no aplica')
+    await field(p, 'Cultivo').selectOption('quinua'); await field(p, 'Tipo').selectOption('cultivo')
+    await p.getByText('Ficha de cultivo: quinua').click()
+    await p.getByRole('heading', { name: 'Aspectos generales' }).waitFor()
+    assert(await p.getByText('Fuente:').count() === 1, 'sin nota de fuente')
+  })
+
+  await test('Cobertura, privacidad y términos', async () => {
+    const p = await newPage()
+    await p.goto(`${BASE}/#/cobertura`)
+    await p.getByText('Quinua: disponible').first().waitFor()
+    const oruro = await p.locator('li', { has: p.getByRole('heading', { name: 'Oruro' }) }).innerText()
+    assert(oruro.includes('Quinua: disponible') && !oruro.includes('Papa'), 'Oruro: estado de cultivos incorrecto: ' + oruro)
+    const beni = await p.locator('li', { has: p.getByRole('heading', { name: 'Beni' }) }).innerText()
+    assert(beni.includes('Aún sin reglas'), 'Beni no debería tener reglas')
+    await btn(p, /Ver mapa de municipios/).click(); await p.locator('.leaflet-container').waitFor()
+    await p.goto(`${BASE}/#/privacidad`); await p.getByRole('heading', { name: 'Qué datos pedimos' }).waitFor()
+    await p.goto(`${BASE}/#/terminos`); await p.getByRole('heading', { name: 'Avisos no oficiales' }).waitFor()
   })
 
   await browser.close()

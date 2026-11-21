@@ -87,6 +87,11 @@ export default function Weather() {
           <StormCard wx={wx} />
           {wx.recent.available && <RecentCard wx={wx} />}
 
+          <a href="#/avisos" className="flex min-h-12 items-center justify-between rounded-2xl border border-linea bg-papel px-4 py-3 font-semibold text-bosque">
+            <span>📢 Avisos de la plataforma para su zona</span><span aria-hidden="true">→</span>
+          </a>
+          {wx.forecast.extra?.official && <Notice tone="ok">✅ Pronóstico de fuente oficial: {wx.forecast.source}.</Notice>}
+
           <Card className="border-2 border-tierra">
             <h2 className="text-lg font-bold">📢 Avisos oficiales (SENAMHI)</h2>
             <p className="mt-1">{wx.official_alerts.message}</p>

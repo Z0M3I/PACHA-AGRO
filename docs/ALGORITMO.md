@@ -66,9 +66,9 @@ Además de los criterios, el motor devuelve campos pensados para la primera pant
 
 Estos campos no cambian el semáforo: solo explican el resultado que ya calculaba el motor.
 
-## Caso de demostración
+## Modo simulado
 
-`#/sembrar/demo` consulta Challapata (Oruro), quinua Pandela, suelo húmedo y secano en **modo simulado**. Los datos simulados no usan la red y son deterministas por municipio y fecha. Por eso el caso funciona aunque fallen Open-Meteo o NASA POWER, y dos consultas el mismo día dan el mismo resultado. Al cambiar el día, cambian las fechas del pronóstico simulado y la posición respecto al calendario, así que el resultado puede variar.
+La API conserva `mode: "simulado"` (datos deterministas por municipio y fecha, sin red) para pruebas automatizadas. La interfaz ya no lo ofrece: desde el PR #4 la consulta de siembra y el clima usan solo datos reales, y si falta el pronóstico se informa y se puede reintentar.
 
 ## Lo que el algoritmo NO hace
 

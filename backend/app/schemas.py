@@ -58,6 +58,7 @@ class UserOut(BaseModel):
     is_demo: bool
     whatsapp_opt_in: bool
     default_municipality_id: str | None
+    crops: list[str] = []
 
     model_config = {"from_attributes": True}
 
@@ -65,6 +66,24 @@ class UserOut(BaseModel):
 class ProfileUpdate(BaseModel):
     whatsapp_opt_in: bool | None = None
     default_municipality_id: str | None = None
+    crops: list[str] | None = Field(default=None, max_length=10)
+
+
+class RegionalNoticeIn(BaseModel):
+    title: str = Field(min_length=5, max_length=140)
+    summary: str = Field(min_length=5, max_length=300)
+    body: str = Field(default="", max_length=3000)
+    kind: Literal["aviso", "comunicado", "clima", "evento"] = "aviso"
+    scope: Literal["nacional", "departamento", "municipio", "cultivo"] = "nacional"
+    department_id: str | None = Field(default=None, max_length=40)
+    municipality_id: str | None = Field(default=None, max_length=60)
+    crop_id: str | None = Field(default=None, max_length=30)
+    expires_at: datetime | None = None
+
+
+class UserRoleIn(BaseModel):
+    # No se puede asignar "admin" por la API (evita escalada de privilegios); el admin viene del entorno.
+    role: Literal["farmer", "editor"]
 
 
 class CommunityIn(BaseModel):

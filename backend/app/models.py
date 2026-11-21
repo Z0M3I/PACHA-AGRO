@@ -17,14 +17,21 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(120))
     phone: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    # Rol global: "farmer" o "admin". El rol de representante es POR comunidad (Membership.role).
+    # Rol global: "farmer", "editor" (publica avisos regionales) o "admin".
+    # El rol de representante es POR comunidad (Membership.role).
     role: Mapped[str] = mapped_column(String(20), default="farmer")
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     whatsapp_opt_in: Mapped[bool] = mapped_column(Boolean, default=False)
     whatsapp_opt_in_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     default_municipality_id: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    # Cultivos de interés separados por coma (ej. "quinua,papa"); segmentan los avisos regionales.
+    crop_interests: Mapped[str] = mapped_column(String(200), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    @property
+    def crops(self) -> list[str]:
+        return [c for c in (self.crop_interests or "").split(",") if c]
 
     memberships: Mapped[list["Membership"]] = relationship(back_populates="user", foreign_keys="Membership.user_id")
 
@@ -131,5 +138,32 @@ class OutboundMessage(Base):
     body: Mapped[str] = mapped_column(Text)
     meeting_id: Mapped[int | None] = mapped_column(ForeignKey("meetings.id"), nullable=True)
     channel: Mapped[str] = mapped_column(String(20), default="simulador")
-    status: Mapped[str] = mapped_column(String(20), default="simulado")  # simulado | enviado | error
+    # simulado | enviado | entregado | leido | fallido  (los tres últimos llegan por el webhook de Meta)
+    status: Mapped[str] = mapped_column(String(20), default="simulado")
+    wa_message_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    notice_id: Mapped[int | None] = mapped_column(ForeignKey("regional_notices.id"), nullable=True)
+    error: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class RegionalNotice(Base):
+    """Aviso regional segmentado por alcance (adaptado del proyecto PACHAAGRO).
+
+    Lo publica un administrador o editor de contenido. NUNCA es un aviso oficial del SENAMHI:
+    la interfaz y la API lo etiquetan como 'aviso de la plataforma'."""
+    __tablename__ = "regional_notices"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(140))
+    summary: Mapped[str] = mapped_column(String(300))
+    body: Mapped[str] = mapped_column(Text, default="")
+    kind: Mapped[str] = mapped_column(String(20), default="aviso")  # aviso | comunicado | clima | evento
+    scope: Mapped[str] = mapped_column(String(20), default="nacional")  # nacional | departamento | municipio | cultivo
+    department_id: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    municipality_id: Mapped[str | None] = mapped_column(String(60), nullable=True, index=True)
+    crop_id: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
