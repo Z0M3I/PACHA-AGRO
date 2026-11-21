@@ -53,6 +53,23 @@ en otro caso                              → 🟡 Se recomienda precaución
 
 Confianza: **baja** sin pronóstico o con datos simulados; **media** en escenarios demo; **media-alta** en escenario implementado con pronóstico. El puntaje se muestra solo en "Detalles técnicos" y se aclara que no es una probabilidad.
 
+## Factor decisivo, acción principal y confianza
+
+Además de los criterios, el motor devuelve campos pensados para la primera pantalla del celular:
+
+| Campo | Qué es | Regla |
+|---|---|---|
+| `key_factor` | El criterio que más pesa en el resultado | **Insuficiente:** el criterio crítico sin datos. **Rojo/amarillo:** el más desfavorable (rojo > amarillo); a igual estado gana el crítico, luego el de mayor peso, luego el orden `key_factor_priority` de `crops.json` (helada, humedad, calendario, lluvia, temperatura, tormenta). Los criterios no críticos sin datos no deciden el resultado. **Verde:** el crítico de mayor peso (todos a favor). |
+| `main_action` | Una sola acción en lenguaje sencillo | Tabla fija por criterio y estado (`_ACTION` en `engine.py`), con matices: helada sin pronóstico → "vuelva a consultar"; época temprana o tardía; lluvia fuerte. Verde → "Puede preparar la siembra…". |
+| `missing_data` | Criterios sin datos | Se muestran como aviso "Faltan datos". |
+| `confidence_explanation` | Qué significa la confianza | Dice por qué es baja/media/media-alta y aclara que **no es la probabilidad** de una buena cosecha. |
+
+Estos campos no cambian el semáforo: solo explican el resultado que ya calculaba el motor.
+
+## Caso de demostración
+
+`#/sembrar/demo` consulta Challapata (Oruro), quinua Pandela, suelo húmedo y secano en **modo simulado**. Los datos simulados no usan la red y son deterministas por municipio y fecha. Por eso el caso funciona aunque fallen Open-Meteo o NASA POWER, y dos consultas el mismo día dan el mismo resultado. Al cambiar el día, cambian las fechas del pronóstico simulado y la posición respecto al calendario, así que el resultado puede variar.
+
 ## Lo que el algoritmo NO hace
 
 - No da fechas ni horas exactas de siembra.

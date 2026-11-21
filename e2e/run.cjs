@@ -55,10 +55,17 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     const tap = async (l) => { await l.click(); taps++ }
     await tap(p.getByRole('link', { name: /Consultar condiciones de siembra/ }).first())
     for (const t of [/^Oruro$/, /Challapata/, /Quinua/, /Pandela/, /Sí, está húmedo/, /Depende de la lluvia/]) await tap(btn(p, t))
-    await p.waitForSelector('text=¿Por qué?')
+    await p.getByTestId('main-action').waitFor()
+    const action = await p.getByTestId('main-action').boundingBox()
+    const factors = await p.getByRole('heading', { name: 'Todos los factores' }).boundingBox()
+    assert(action.y < factors.y, 'la acción principal debe preceder a los criterios')
     const status = await p.locator('section[aria-live]').first().innerText()
     assert(/favorables|precaución|desfavorables|insuficiente/.test(status), 'sin semáforo')
     assert(await p.locator('text=Fuente:').count() > 0, 'no muestra fuentes')
+    assert(await p.getByTestId('sim-badge').count() === 0, 'consulta real no debe tener la etiqueta "Caso simulado"')
+    const msg = decodeURIComponent((await p.getByTestId('share-whatsapp').getAttribute('href')).split('text=')[1])
+    assert(msg.includes('Quinua en Challapata') && msg.includes('Orientación experimental'), 'mensaje incompleto: ' + msg)
+    assert(!msg.includes('Caso simulado'), 'mensaje real no debe decir "Caso simulado"')
     await p.screenshot({ path: `${OUT}/siembra-resultado.png`, fullPage: true })
     return `${taps} toques, ${(Date.now() - t0) / 1000}s automatizado; resultado: ${status.split('\n').find(x => x.trim().length > 3)}`
   })
@@ -68,7 +75,8 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await p.goto(`${BASE}/#/sembrar`)
     for (const t of [/^Oruro$/, /Challapata/, /Haba/, /Usnayo/, /Sí, está húmedo/, /Tengo riego/]) await btn(p, t).click()
     await p.waitForSelector('text=Información insuficiente')
-    assert(await p.locator('text=¿Por qué?').count() === 0, 'no debería mostrar criterios')
+    assert(await p.locator('text=Todos los factores').count() === 0, 'no debería mostrar criterios')
+    assert(await p.locator('text=Faltan datos').count() === 1, 'debe decir que faltan datos')
   })
 
   await test('Clima: sin pronóstico se explica el problema y se puede reintentar', async () => {
@@ -140,6 +148,7 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
   await test('WhatsApp: simulador responde y el botón Enviar es visible', async () => {
     const p = await newPage()
     await p.goto(`${BASE}/#/whatsapp`)
+    await p.locator('#chat').waitFor()  // la pantalla se carga de forma diferida
     assert(await p.locator('text=no está conectado').count() > 0, 'no avisa que es simulación')
     await p.fill('#chat', '¿Cuándo puedo sembrar quinua en Challapata?')
     const send = btn(p, /^Enviar$/); const b = await send.boundingBox()

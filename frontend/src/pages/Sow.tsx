@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { DepartmentList, MunicipalityList, OptionButton } from '../components/LocationPicker'
 import { Button, Card, DataTag, ErrorBox, Loading, Notice, PageTitle, STATUS_UI } from '../components/ui'
 import { api } from '../lib/api'
+import { shareText, whatsappShareUrl } from '../lib/share'
 import { useApp } from '../lib/store'
 import type { Crop, Recommendation } from '../lib/types'
 
@@ -35,7 +36,6 @@ export default function Sow() {
       if (ans.muni) setMunicipalityId(ans.muni)
     } catch (e) { setErr((e as Error).message) } finally { setLoading(false) }
   }
-
   const restart = () => { setA({}); setStep(0); setResult(null) }
 
   if (loading) return <><PageTitle icon="🌱" title="¿Cuándo puedo sembrar?" /><Loading text="Revisando clima y calendario…" /></>
@@ -70,7 +70,7 @@ export default function Sow() {
               return (
                 <OptionButton key={c.id} selected={a.crop === c.id} onClick={() => set('crop', c.id)}>
                   <span className="text-3xl" aria-hidden="true">{c.emoji}</span><span className="block">{c.name}</span>
-                  <span className="block text-sm font-normal text-musgo">{st === 'implemented' ? 'Disponible' : st === 'demo' ? 'Reglas preliminares' : 'Sin reglas aún'}</span>
+                  <span className="block text-sm font-normal text-musgo">{st === 'implemented' ? 'Disponible' : st === 'demo' ? 'Demostración' : 'Sin reglas aún'}</span>
                 </OptionButton>
               )
             })}
@@ -102,18 +102,62 @@ function Q({ n, text }: { n: number; text: string }) {
 
 function Result({ r, onRestart }: { r: Recommendation; onRestart: () => void }) {
   const ui = STATUS_UI[r.status]
-  const share = encodeURIComponent(`AgroBolivia — ${r.crop_name} en ${r.location.name}: ${ui.emoji} ${r.headline}. ${r.summary} (Orientación experimental, consulte a su técnico.)`)
+  const sim = r.mode === 'simulado'
   const noForecast = r.weather_summary && !r.weather_summary.forecast_available && r.mode === 'real'
+  const key = r.key_factor
+  const [copied, setCopied] = useState(false)
+  const message = shareText(r)
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(message); setCopied(true) } catch { setCopied(false) }
+  }
   return (
-    <div className="space-y-4">
-      <PageTitle icon="🌱" title={`${r.crop_name} en ${r.location.name}`} subtitle={`${r.location.department_name}${r.variety ? ` · ${r.variety}` : ''}`} />
-      {r.scenario_status === 'demo' && <Notice tone="warn"><strong>Reglas preliminares.</strong> {r.scenario_label}</Notice>}
+    <div className="space-y-3.5">
+      <div>
+        <h1 className="font-display text-[1.5rem] font-bold leading-tight text-bosque">🌱 {r.crop_name} en {r.location.name}</h1>
+        <p className="text-[0.95rem] text-musgo">{r.location.department_name}{r.variety ? ` · ${r.variety}` : ''}</p>
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {sim && <span data-testid="sim-badge" className="rounded-full border-2 border-dashed border-tierra bg-tierra-100 px-2 py-px text-[0.8rem] font-bold text-tierra">🧪 Caso simulado</span>}
+          <span className="rounded-full bg-sol-50 px-2 py-0.5 text-[0.8rem] font-semibold text-sol-ink">⚠️ Orientación experimental</span>
+          {r.scenario_status === 'demo' && <span className="rounded-full bg-sol-50 px-2 py-0.5 text-[0.8rem] font-semibold text-sol-ink">Reglas preliminares</span>}
+        </div>
+      </div>
 
-      <section aria-live="polite" className={`rounded-2xl border-2 p-5 ${ui.box}`}>
-        <div className={`flex items-center gap-3 text-[1.6rem] font-bold leading-tight ${ui.ink}`}><span className="text-4xl" aria-hidden="true">{ui.emoji}</span>{r.headline}</div>
-        <p className="mt-2 text-lg">{r.summary}</p>
-        {r.status !== 'gris' && <p className="mt-2 text-sm text-musgo">Disponibilidad de datos: <strong>{r.confidence}</strong>. Las reglas son experimentales y requieren validación agronómica.</p>}
+      <section aria-live="polite" aria-label="Resultado" className={`rounded-2xl border-2 p-3.5 ${ui.box}`}>
+        <div className={`flex items-center gap-2.5 text-[1.35rem] font-bold leading-tight ${ui.ink}`}><span className="text-[2rem]" aria-hidden="true">{ui.emoji}</span>{r.headline}</div>
+        {key && (
+          <div className="mt-2.5" data-testid="key-factor">
+            <p className="text-sm font-bold uppercase tracking-wide text-musgo">Lo que más pesa</p>
+            <p className="text-lg font-bold">{STATUS_UI[key.status].emoji} {key.label}</p>
+            <p className="mt-0.5">{key.explanation}</p>
+          </div>
+        )}
+        {!key && <p className="mt-2 text-lg">{r.summary}</p>}
+        <div className="mt-2.5 rounded-xl bg-papel p-3" data-testid="main-action">
+          <p className="text-sm font-bold uppercase tracking-wide text-bosque">Qué hacer ahora</p>
+          <p className="text-lg font-semibold">👉 {r.main_action}</p>
+        </div>
+        {sim && <p className="mt-2 text-sm font-semibold text-tierra">🧪 Caso simulado: el clima usado es ficticio. No lo use para decidir.</p>}
       </section>
+
+      {r.missing_data.length > 0 && (
+        <Notice tone="warn"><strong>Faltan datos:</strong> {r.missing_data.join(', ')}. El resultado se basa en menos información.</Notice>
+      )}
+
+      <div className="grid gap-2">
+        <a className="flex min-h-12 items-center justify-center rounded-xl bg-[#1f7a4a] px-5 text-lg font-semibold text-white" href={whatsappShareUrl(r)} target="_blank" rel="noopener noreferrer" data-testid="share-whatsapp">💬 Compartir por WhatsApp</a>
+        <details className="rounded-xl border border-linea bg-papel p-3">
+          <summary className="cursor-pointer font-semibold text-bosque">Ver el mensaje que se enviará</summary>
+          <p className="mt-2 whitespace-pre-line rounded-lg bg-[#efe9dc] p-3 text-[0.95rem]" data-testid="share-preview">{message}</p>
+          <Button variant="secondary" className="mt-2 w-full" onClick={copy}>{copied ? '✅ Mensaje copiado' : '📋 Copiar mensaje'}</Button>
+          <p className="mt-2 text-sm text-musgo">Se abre WhatsApp en su celular y usted elige a quién enviarlo. El asistente automático de AgroBolivia en WhatsApp todavía es un simulador.</p>
+        </details>
+      </div>
+
+      <details className="rounded-xl border border-linea bg-papel p-3">
+        <summary className="cursor-pointer font-semibold text-bosque">Confianza: {r.confidence} · ¿qué significa?</summary>
+        <p className="mt-2">{r.confidence_explanation}</p>
+        <p className="mt-2 text-sm text-musgo">Las reglas son experimentales y están pendientes de validación agronómica. No es una fecha exacta de siembra.</p>
+      </details>
 
       {noForecast && (
         <Notice tone="warn">
@@ -122,11 +166,11 @@ function Result({ r, onRestart }: { r: Recommendation; onRestart: () => void }) 
       )}
 
       {r.criteria.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-xl font-bold">¿Por qué?</h2>
+        <section aria-labelledby="todos">
+          <h2 id="todos" className="mb-2 text-xl font-bold">Todos los factores</h2>
           <ul className="space-y-2">
             {r.criteria.map(c => (
-              <li key={c.id} className="rounded-xl border border-linea bg-papel p-3">
+              <li key={c.id} className={`rounded-xl border bg-papel p-3 ${key?.id === c.id ? 'border-2 border-bosque' : 'border-linea'}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-lg font-bold">{STATUS_UI[c.status].emoji} {c.label}</span><DataTag kind={c.data_kind} />
                 </div>
@@ -139,14 +183,11 @@ function Result({ r, onRestart }: { r: Recommendation; onRestart: () => void }) 
       )}
 
       <Card>
-        <h2 className="mb-2 text-xl font-bold">¿Qué puede hacer?</h2>
+        <h2 className="mb-2 text-xl font-bold">Otras recomendaciones</h2>
         <ul className="list-disc space-y-1 pl-5">{r.actions.map(x => <li key={x}>{x}</li>)}</ul>
       </Card>
 
-      <div className="grid gap-3">
-        <a className="flex min-h-12 items-center justify-center rounded-xl bg-[#1f7a4a] px-5 text-lg font-semibold text-white" href={`https://wa.me/?text=${share}`} target="_blank" rel="noopener noreferrer">💬 Compartir por WhatsApp</a>
-        <Button variant="secondary" onClick={onRestart}>Hacer otra consulta</Button>
-      </div>
+      <Button variant="secondary" className="w-full" onClick={onRestart}>Hacer otra consulta</Button>
 
       <details className="rounded-xl border border-linea bg-papel p-3">
         <summary className="cursor-pointer text-lg font-semibold text-bosque">Detalles técnicos y fuentes</summary>

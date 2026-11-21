@@ -15,12 +15,13 @@ export interface Weather {
   frost_risk: { level: 'alto' | 'medio' | 'bajo' | 'desconocido'; min_tmin?: number | null; date?: string | null; basis: string | null; source: string | null; frost_days_month?: number }
   storm_risk: { level: string; days: string[]; note?: string }
 }
-export interface Criterion { id: string; label: string; status: Status; explanation: string; data_kind: string; source: string | null; value: string | null }
+export interface Criterion { id: string; label: string; status: Status; explanation: string; data_kind: string; source: string | null; value: string | null; hint?: string | null }
 export interface Recommendation {
   status: Status; headline: string; summary: string; score: number | null; confidence: string
   crop_name: string; variety: string | null; location: { name: string; department_name: string; region: string }
   scenario_status: 'implemented' | 'demo' | 'no_rules'; scenario_label: string; mode: string; disclaimer: string
   criteria: Criterion[]; actions: string[]; sources: string[]; notes: string[]; variety_note?: string
+  key_factor: Criterion | null; main_action: string; missing_data: string[]; confidence_explanation: string
   weather_summary?: { forecast_available: boolean; forecast_error: string | null; forecast_source: string; recent_source: string | null; fetched_at: string | null }
 }
 export interface Crop { id: string; name: string; emoji: string; varieties: string[]; regions: Record<string, string> }

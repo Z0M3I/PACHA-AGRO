@@ -17,7 +17,7 @@ Prototipo funcional para hackatón universitaria. Integra los tracks **Comunicac
 | Página principal con navegación que se adapta a móvil, tableta y escritorio | ✅ |
 | Selección de departamento → municipio → cultivo (9 departamentos, 32 municipios) | ✅ |
 | Clima: pronóstico **Open-Meteo**, historial y climatología **NASA POWER**, riesgo de helada, tormentas | ✅ datos reales (con caché y respaldo) |
-| Recomendación de siembra explicable 🟢🟡🔴⚪ | ✅ **Quinua en el Altiplano** (Oruro, Potosí, La Paz) · 🧪 Papa y Maíz en modo *demostración* · ⚪ Haba y Cebada sin reglas |
+| Recomendación de siembra con factor decisivo, acción principal y fuentes | ✅ **Quinua en el Altiplano** (Oruro, Potosí, La Paz) · 🧪 Papa y Maíz en modo *demostración* · ⚪ Haba y Cebada sin reglas |
 | Registro e inicio de sesión de agricultores (celular + clave) | ✅ |
 | Comunidades con aprobación del administrador; solicitudes de unión aprobadas por el representante | ✅ |
 | Reuniones, confirmación de asistencia, avisos, reportes de helada/granizo, historial | ✅ |
@@ -67,7 +67,7 @@ cd frontend && npm run dev
 | Administrador | el de `ADMIN_PHONE` | el de `ADMIN_PASSWORD` |
 
 ### Guion de demostración para el jurado (≈4 min)
-1. **Inicio → ¿Cuándo puedo sembrar?** Oruro → Challapata → Quinua → Pandela → Sí, húmedo → Depende de la lluvia. Resultado en 7 toques, con el *porqué* de cada criterio y su fuente.
+1. **Inicio → Consultar condiciones de siembra** Oruro → Challapata → Quinua → Pandela → Sí, húmedo → Depende de la lluvia. Resultado en 7 toques, con el *porqué* de cada criterio y su fuente.
 2. **Clima**: pronóstico real, riesgo de helada, historial NASA POWER, enlace a SENAMHI. Si el pronóstico no responde, se muestra el estado y se puede reintentar.
 3. **Comunidad** (representante 70000001): convocar reunión → "Recordar" (genera recordatorios *simulados* solo para quienes aceptaron WhatsApp).
 4. **WhatsApp** (agricultora 70000002): "¿Cuándo es la reunión de mi comunidad?" → "SI" → la asistencia se registra. "Quiero avisar que cayó granizo en mi zona." → queda como *observación comunitaria*.
@@ -96,7 +96,7 @@ cd frontend && npm test
 node e2e/run.cjs http://localhost:8000
 ```
 
-Resultados actuales: **51/51** backend, **3/3** unitarias frontend, **13/13** extremo a extremo. Detalle en [docs/PRUEBAS.md](docs/PRUEBAS.md).
+Resultados actuales: **61/61** backend, **7/7** unitarias frontend, **14/14** extremo a extremo. Detalle en [docs/PRUEBAS.md](docs/PRUEBAS.md).
 
 ## Documentación
 
