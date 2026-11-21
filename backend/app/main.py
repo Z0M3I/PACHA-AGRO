@@ -9,16 +9,13 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import get_settings
-from app.db import Base, SessionLocal, engine
+from app import db as dbmod
 from app.routers import admin, auth, catalog, communities, education, recommendations, whatsapp
-from app.seed import seed
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(engine)
-    with SessionLocal() as db:
-        seed(db)
+    dbmod.init_db()
     yield
 
 

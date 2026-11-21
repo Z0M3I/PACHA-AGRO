@@ -55,8 +55,6 @@ def app_client():
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     dbmod.engine = engine
     dbmod.SessionLocal.configure(bind=engine)
-    import app.main as mainmod
-    mainmod.engine = engine
     service.set_client(httpx.Client(transport=mock_transport()))
     for lim in (login_limiter, register_limiter, chat_limiter):
         lim.reset()

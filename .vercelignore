@@ -1,0 +1,7 @@
+backend/.venv
+backend/tests
+backend/*.db
+frontend/node_modules
+e2e
+docs/img
+**/__pycache__
