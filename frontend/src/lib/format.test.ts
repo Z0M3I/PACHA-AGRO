@@ -10,7 +10,7 @@ describe('format', () => {
   })
   it('iconos con texto', () => {
     expect(weatherIcon(95).text).toBe('Tormenta')
-    expect(weatherIcon(0).icon).toBe('☀️')
+    expect(weatherIcon(0).icon).toBe('sun')
     expect(weatherIcon(null).text).toBe('Sin dato')
   })
   it('redondea con guion si falta dato', () => {

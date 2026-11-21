@@ -27,13 +27,13 @@ export default function Coverage() {
 
   return (
     <div className="space-y-4">
-      <PageTitle icon="🗺️" title="Cobertura nacional" subtitle="Los 9 departamentos de Bolivia y qué orientación de siembra hay en cada uno." />
+      <PageTitle title="Cobertura nacional" subtitle="Los 9 departamentos de Bolivia y qué orientación de siembra hay en cada uno." />
       <Card className="flex flex-wrap justify-around gap-x-4 gap-y-1 text-center">
         {[[departments.length, 'departamentos'], [municipalities, 'municipios'], [crops.crops.length, 'cultivos']].map(([n, l]) => (
           <p key={l as string}><strong className="text-2xl text-bosque">{n}</strong> <span className="text-musgo">{l}</span></p>
         ))}
       </Card>
-      {!map ? <Button variant="secondary" className="w-full" onClick={() => setMap(true)}>🗺️ Ver mapa de municipios</Button>
+      {!map ? <Button variant="secondary" className="w-full" onClick={() => setMap(true)}>Ver mapa de municipios</Button>
         : <Suspense fallback={<Loading text="Cargando mapa…" />}><CoverageMap departments={departments} /></Suspense>}
       {map && <p className="text-sm text-musgo">Colores: <span className="font-semibold text-tierra">● altiplano</span> · <span className="font-semibold text-ocre">● valles</span> · <span className="font-semibold text-bosque">● llanos</span>. Ubicaciones aproximadas.</p>}
       <ul className="space-y-3">
@@ -45,11 +45,11 @@ export default function Coverage() {
               <Card>
                 <div className="flex items-baseline justify-between gap-2"><h2 className="text-xl font-bold">{d.name}</h2>
                   <span className="text-sm text-musgo">{d.municipalities.length} municipios · {[...regions].join(', ')}</span></div>
-                {avail.length === 0 ? <p className="mt-1 text-musgo">⚪ Clima disponible. Aún sin reglas de siembra validadas para esta zona.</p> : (
+                {avail.length === 0 ? <p className="mt-1 text-musgo">Clima disponible. Aún sin reglas de siembra validadas para esta zona.</p> : (
                   <ul className="mt-1 flex flex-wrap gap-2">
                     {avail.map(([c, s]) => (
                       <li key={c.id} className={`rounded-full px-3 py-0.5 font-semibold ${s === 'disponible' ? 'bg-brote text-bosque-800' : 'bg-sol-50 text-sol-ink'}`}>
-                        {c.emoji} {c.name}: {s}
+                        {c.name}: {s}
                       </li>
                     ))}
                   </ul>

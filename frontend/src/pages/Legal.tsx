@@ -3,7 +3,7 @@ import { PageTitle } from '../components/ui'
 /** Privacidad y términos (idea de PACHAAGRO, adaptado a los datos reales que usa AgroBolivia). */
 const DOCS = {
   privacidad: {
-    icon: '🔒', title: 'Política de privacidad',
+    icon: '', title: 'Política de privacidad',
     sections: [
       ['Qué datos pedimos', 'Para crear una cuenta: nombre, número de celular y una clave. De forma opcional: su municipio y sus cultivos de interés. Registramos la fecha en que acepta recibir mensajes por WhatsApp. Para consultar el clima o la siembra no hace falta cuenta.'],
       ['Para qué los usamos', 'Para su cuenta, para mostrarle los avisos de su zona y de sus cultivos, y para los recordatorios de su comunidad. No vendemos ni compartimos sus datos con fines publicitarios.'],
@@ -14,7 +14,7 @@ const DOCS = {
     ],
   },
   terminos: {
-    icon: '📄', title: 'Términos de uso',
+    icon: '', title: 'Términos de uso',
     sections: [
       ['Qué es AgroBolivia', 'Un prototipo académico que ofrece orientación sobre clima y siembra, y herramientas para que las comunidades se organicen.'],
       ['Orientación, no garantía', 'Las orientaciones de siembra usan reglas experimentales, pendientes de validación agronómica. No reemplazan a un técnico agrícola. Usted decide qué hacer en su parcela.'],

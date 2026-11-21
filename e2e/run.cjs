@@ -128,7 +128,7 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     assert(await p.locator('text=Solicitudes').count() === 0, 've "Solicitudes"')
     const r = await p.evaluate(async () => (await fetch('/api/communities/1/meetings', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('agb_token') }, body: JSON.stringify({ title: 'Falsa', place: 'x lugar', starts_at: '2030-01-01T10:00:00' }) })).status)
     assert(r === 403, `API devolvió ${r}`)
-    await btn(p, /^✔ Sí$/).click(); await p.waitForSelector('text=Respuesta guardada')
+    await btn(p, /^Sí$/).click(); await p.waitForSelector('text=Respuesta guardada')
   })
 
   await test('Reuniones: el representante convoca una reunión y envía recordatorio (simulado)', async () => {

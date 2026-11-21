@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { GpsButton } from '../components/GpsButton'
 import { DepartmentList, MunicipalityList, OptionButton } from '../components/LocationPicker'
-import { Button, Card, DataTag, ErrorBox, Loading, Notice, PageTitle, STATUS_UI } from '../components/ui'
+import { Button, Card, DataTag, ErrorBox, Loading, Notice, PageTitle, STATUS_UI, StatusMark } from '../components/ui'
 import { api } from '../lib/api'
 import { updatedAt } from '../lib/format'
 import { shareText, whatsappShareUrl } from '../lib/share'
@@ -42,7 +42,7 @@ export default function Sow() {
   }
   const restart = () => { setA({}); setStep(0); setResult(null) }
 
-  if (loading) return <><PageTitle icon="🌱" title="¿Cuándo puedo sembrar?" /><Loading text="Revisando clima y calendario…" /></>
+  if (loading) return <><PageTitle title="¿Cuándo puedo sembrar?" /><Loading text="Revisando clima y calendario…" /></>
   if (result) return <Result r={result} onRestart={restart} />
 
   const crop = crops?.find(c => c.id === a.crop)
@@ -51,7 +51,7 @@ export default function Sow() {
 
   return (
     <div>
-      <PageTitle icon="🌱" title="¿Cuándo puedo sembrar?" subtitle="Responda 6 preguntas cortas." />
+      <PageTitle title="¿Cuándo puedo sembrar?" subtitle="Responda 6 preguntas cortas." />
       <div className="mb-4" aria-label={`Paso ${step + 1} de 6`}>
         <div className="flex gap-1.5" aria-hidden="true">{STEPS.map((_, i) => <span key={i} className={`h-2 flex-1 rounded-full ${i <= step ? 'bg-bosque' : 'bg-linea'}`} />)}</div>
         <div className="mt-1 flex justify-between text-musgo"><span>Paso {step + 1} de 6</span>
@@ -62,7 +62,7 @@ export default function Sow() {
       {key === 'dept' && (<>
         <Q n={1} text="¿En qué departamento está?" />
         <div className="mb-3"><GpsButton onLocated={g => { const m = findMunicipality(g.municipalityId); if (m) { setA({ dept: m.department_id, muni: m.id }); setStep(2) } }} /></div>
-        {saved && <div className="mb-3"><OptionButton onClick={useSaved}>{gps && gps.municipalityId === saved.id ? `📍 Usar mi ubicación guardada (cerca de ${saved.name})` : `📍 Usar ${saved.name}, ${saved.department_name}`}</OptionButton></div>}
+        {saved && <div className="mb-3"><OptionButton onClick={useSaved}>{gps && gps.municipalityId === saved.id ? `Usar mi ubicación guardada (cerca de ${saved.name})` : `Usar ${saved.name}, ${saved.department_name}`}</OptionButton></div>}
         <DepartmentList selected={a.dept} onPick={v => set('dept', v)} />
       </>)}
       {key === 'muni' && a.dept && (<><Q n={2} text="¿En qué municipio o comunidad?" /><MunicipalityList departmentId={a.dept} selected={a.muni} onPick={v => set('muni', v)} /></>)}
@@ -74,7 +74,7 @@ export default function Sow() {
               const st = muni ? c.regions[muni.region] : undefined
               return (
                 <OptionButton key={c.id} selected={a.crop === c.id} onClick={() => set('crop', c.id)}>
-                  <span className="text-3xl" aria-hidden="true">{c.emoji}</span><span className="block">{c.name}</span>
+                  <span className="block">{c.name}</span>
                   <span className="block text-sm font-normal text-musgo">{st === 'implemented' ? 'Disponible' : st === 'demo' ? 'Demostración' : 'Sin reglas aún'}</span>
                 </OptionButton>
               )
@@ -87,15 +87,15 @@ export default function Sow() {
       {key === 'moisture' && (<><Q n={5} text="¿Su terreno tiene humedad suficiente?" />
         <p className="mb-3 text-musgo">Prueba: apriete tierra de 5-10 cm de hondo. Si forma un terrón, hay humedad.</p>
         <div className="grid gap-3">
-          <OptionButton onClick={() => set('moisture', 'si')}>💧 Sí, está húmedo</OptionButton>
-          <OptionButton onClick={() => set('moisture', 'poca')}>💧 Un poco</OptionButton>
-          <OptionButton onClick={() => set('moisture', 'no')}>🏜️ No, está seco</OptionButton>
-          <OptionButton onClick={() => set('moisture', 'no_se')}>❔ No sé</OptionButton>
+          <OptionButton onClick={() => set('moisture', 'si')}>Sí, está húmedo</OptionButton>
+          <OptionButton onClick={() => set('moisture', 'poca')}>Un poco</OptionButton>
+          <OptionButton onClick={() => set('moisture', 'no')}>No, está seco</OptionButton>
+          <OptionButton onClick={() => set('moisture', 'no_se')}>No sé</OptionButton>
         </div></>)}
       {key === 'irrigation' && (<><Q n={6} text="¿Tiene riego o depende de la lluvia?" />
         <div className="grid gap-3">
-          <OptionButton onClick={() => submit('riego')}>🚿 Tengo riego</OptionButton>
-          <OptionButton onClick={() => submit('secano')}>🌧️ Depende de la lluvia</OptionButton>
+          <OptionButton onClick={() => submit('riego')}>Tengo riego</OptionButton>
+          <OptionButton onClick={() => submit('secano')}>Depende de la lluvia</OptionButton>
         </div></>)}
     </div>
   )
@@ -118,30 +118,30 @@ function Result({ r, onRestart }: { r: Recommendation; onRestart: () => void }) 
   return (
     <div className="space-y-3.5">
       <div>
-        <h1 className="font-display text-[1.5rem] font-bold leading-tight text-bosque">🌱 {r.crop_name} en {r.location.name}</h1>
+        <h1 className="font-display text-[1.5rem] font-bold leading-tight text-bosque">{r.crop_name} en {r.location.name}</h1>
         <p className="text-[0.95rem] text-musgo">{r.location.department_name}{r.variety ? ` · ${r.variety}` : ''}</p>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {sim && <span data-testid="sim-badge" className="rounded-full border-2 border-dashed border-tierra bg-tierra-100 px-2 py-px text-[0.8rem] font-bold text-tierra">🧪 Caso simulado</span>}
-          <span className="rounded-full bg-sol-50 px-2 py-0.5 text-[0.8rem] font-semibold text-sol-ink">⚠️ Orientación experimental</span>
+          {sim && <span data-testid="sim-badge" className="rounded-full border border-dashed border-tierra bg-tierra-100 px-2 py-px text-[0.8rem] font-bold text-tierra">Caso simulado</span>}
+          <span className="rounded-full bg-sol-50 px-2 py-0.5 text-[0.8rem] font-semibold text-sol-ink">Orientación experimental</span>
           {r.scenario_status === 'demo' && <span className="rounded-full bg-sol-50 px-2 py-0.5 text-[0.8rem] font-semibold text-sol-ink">Reglas preliminares</span>}
         </div>
       </div>
 
-      <section aria-live="polite" aria-label="Resultado" className={`rounded-2xl border-2 p-3.5 ${ui.box}`}>
-        <div className={`flex items-center gap-2.5 text-[1.35rem] font-bold leading-tight ${ui.ink}`}><span className="text-[2rem]" aria-hidden="true">{ui.emoji}</span>{r.headline}</div>
+      <section aria-live="polite" aria-label="Resultado" className={`border-l-4 p-4 ${ui.box}`}>
+        <div className={`flex items-center gap-2.5 font-display text-[1.45rem] leading-tight ${ui.ink}`}><StatusMark status={r.status} size={14} />{r.headline}</div>
         {key && (
           <div className="mt-2.5" data-testid="key-factor">
             <p className="text-sm font-bold uppercase tracking-wide text-musgo">Lo que más pesa</p>
-            <p className="text-lg font-bold">{STATUS_UI[key.status].emoji} {key.label}</p>
+            <p className="flex items-center gap-2 text-lg font-bold"><StatusMark status={key.status} />{key.label}</p>
             <p className="mt-0.5">{key.explanation}</p>
           </div>
         )}
         {!key && <p className="mt-2 text-lg">{r.summary}</p>}
-        <div className="mt-2.5 rounded-xl bg-papel p-3" data-testid="main-action">
+        <div className="mt-2.5 rounded-md bg-white p-3" data-testid="main-action">
           <p className="text-sm font-bold uppercase tracking-wide text-bosque">Qué hacer ahora</p>
-          <p className="text-lg font-semibold">👉 {r.main_action}</p>
+          <p className="text-lg font-semibold">{r.main_action}</p>
         </div>
-        {sim && <p className="mt-2 text-sm font-semibold text-tierra">🧪 Caso simulado: el clima usado es ficticio. No lo use para decidir.</p>}
+        {sim && <p className="mt-2 text-sm font-semibold text-tierra">Caso simulado: el clima usado es ficticio. No lo use para decidir.</p>}
       </section>
 
       {r.missing_data.length > 0 && (
@@ -149,16 +149,16 @@ function Result({ r, onRestart }: { r: Recommendation; onRestart: () => void }) 
       )}
 
       <div className="grid gap-2">
-        <a className="flex min-h-12 items-center justify-center rounded-xl bg-[#1f7a4a] px-5 text-lg font-semibold text-white" href={whatsappShareUrl(r)} target="_blank" rel="noopener noreferrer" data-testid="share-whatsapp">💬 Compartir por WhatsApp</a>
-        <details className="rounded-xl border border-linea bg-papel p-3">
+        <a className="flex min-h-12 items-center justify-center rounded-md bg-[#1f7a4a] px-5 text-lg font-semibold text-white" href={whatsappShareUrl(r)} target="_blank" rel="noopener noreferrer" data-testid="share-whatsapp">Compartir por WhatsApp</a>
+        <details className="rounded-md border border-linea bg-white p-3">
           <summary className="cursor-pointer font-semibold text-bosque">Ver el mensaje que se enviará</summary>
           <p className="mt-2 whitespace-pre-line rounded-lg bg-[#efe9dc] p-3 text-[0.95rem]" data-testid="share-preview">{message}</p>
-          <Button variant="secondary" className="mt-2 w-full" onClick={copy}>{copied ? '✅ Mensaje copiado' : '📋 Copiar mensaje'}</Button>
+          <Button variant="secondary" className="mt-2 w-full" onClick={copy}>{copied ? 'Mensaje copiado' : 'Copiar mensaje'}</Button>
           <p className="mt-2 text-sm text-musgo">Se abre WhatsApp en su celular y usted elige a quién enviarlo. El asistente automático de AgroBolivia en WhatsApp todavía es un simulador.</p>
         </details>
       </div>
 
-      <details className="rounded-xl border border-linea bg-papel p-3">
+      <details className="rounded-md border border-linea bg-white p-3">
         <summary className="cursor-pointer font-semibold text-bosque">Confianza: {r.confidence} · ¿qué significa?</summary>
         <p className="mt-2">{r.confidence_explanation}</p>
         <p className="mt-2 text-sm text-musgo">Las reglas son experimentales y están pendientes de validación agronómica. No es una fecha exacta de siembra.</p>
@@ -178,9 +178,9 @@ function Result({ r, onRestart }: { r: Recommendation; onRestart: () => void }) 
           <h2 id="todos" className="mb-2 text-xl font-bold">Todos los factores</h2>
           <ul className="space-y-2">
             {r.criteria.map(c => (
-              <li key={c.id} className={`rounded-xl border bg-papel p-3 ${key?.id === c.id ? 'border-2 border-bosque' : 'border-linea'}`}>
+              <li key={c.id} className={`rounded-md border bg-white p-3 ${key?.id === c.id ? 'border border-bosque' : 'border-linea'}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-lg font-bold">{STATUS_UI[c.status].emoji} {c.label}</span><DataTag kind={c.data_kind} />
+                  <span className="flex items-center gap-2 text-lg font-bold"><StatusMark status={c.status} />{c.label}</span><DataTag kind={c.data_kind} />
                 </div>
                 <p className="mt-1">{c.explanation}</p>
                 {c.source && <p className="mt-1 text-sm text-musgo">Fuente: {c.source}</p>}
@@ -197,7 +197,7 @@ function Result({ r, onRestart }: { r: Recommendation; onRestart: () => void }) 
 
       <Button variant="secondary" className="w-full" onClick={onRestart}>Hacer otra consulta</Button>
 
-      <details className="rounded-xl border border-linea bg-papel p-3">
+      <details className="rounded-md border border-linea bg-white p-3">
         <summary className="cursor-pointer text-lg font-semibold text-bosque">Detalles técnicos y fuentes</summary>
         <div className="mt-2 space-y-2 text-base">
           <p>{r.disclaimer}</p>

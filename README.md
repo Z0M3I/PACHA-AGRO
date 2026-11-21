@@ -1,4 +1,4 @@
-# AgroBolivia 🌱
+# AgroBolivia
 
 **Plataforma inteligente de asistencia agroclimática y comunicación comunitaria para agricultores de Bolivia.**
 
@@ -6,34 +6,34 @@
 
 Prototipo funcional para hackatón universitaria. Integra los tracks **Comunicación** (comunidades, reuniones, avisos, reportes y WhatsApp) y **Educación** (lecciones breves para interpretar el clima y reducir riesgos).
 
-Portada en escritorio (estilo revista: artículos recomendados con ilustraciones propias):
+Portada en escritorio (diseño editorial sobrio, sin emoticones: tipografía serif, íconos de línea y artículos con ilustraciones propias):
 
 ![Portada en escritorio](docs/img/inicio-escritorio.png)
 
-| Inicio | Asistente de siembra | Resultado explicable | Clima (demostración) |
+| Inicio | Asistente de siembra | Resultado explicable | Clima |
 |---|---|---|---|
-| ![](docs/img/inicio.png) | ![](docs/img/asistente-siembra.png) | ![](docs/img/resultado-siembra.png) | ![](docs/img/clima-demo.png) |
+| ![](docs/img/inicio.png) | ![](docs/img/asistente-siembra.png) | ![](docs/img/resultado-siembra.png) | ![](docs/img/clima.png) |
 
 ## Qué funciona hoy
 
 | Función | Estado |
 |---|---|
-| Página principal con navegación que se adapta a móvil, tableta y escritorio | ✅ |
-| Selección de departamento → municipio → cultivo (9 departamentos, 32 municipios) | ✅ |
-| Clima: pronóstico **Open-Meteo**, historial y climatología **NASA POWER**, riesgo de helada, tormentas | ✅ datos reales (con caché y respaldo) |
-| Recomendación de siembra con factor decisivo, acción principal y fuentes | ✅ **Quinua en el Altiplano** (Oruro, Potosí, La Paz) · 🧪 Papa y Maíz en modo *demostración* · ⚪ Haba y Cebada sin reglas |
-| Registro e inicio de sesión de agricultores (celular + clave) | ✅ |
-| Comunidades con aprobación del administrador; solicitudes de unión aprobadas por el representante | ✅ |
-| Reuniones, confirmación de asistencia, avisos, reportes de helada/granizo, historial | ✅ |
-| Panel de administración: comunidades, permisos, usuarios, reportes | ✅ |
-| Asistente de WhatsApp | 🧪 **SIMULADOR** (no conectado). Arquitectura y webhook oficial listos para credenciales |
-| Módulo educativo "Aprendamos sobre nuestro campo" (7 lecciones con preguntas y fuentes) | ✅ español · quechua/aimara pendientes de revisión lingüística |
-| Avisos regionales segmentados (nacional, departamento, municipio o cultivo), publicados por administradores o editores, con vigencia y etiqueta *no oficial* | ✅ |
-| Cultivos de interés en el perfil (filtran los avisos que recibe cada persona) | ✅ |
-| Biblioteca filtrable por cultivo, tipo y departamento (8 guías con nota de fuente) | ✅ |
-| Cobertura nacional (mapa de municipios y qué hay en cada departamento), privacidad y términos | ✅ |
-| Adaptador para fuente meteorológica oficial con contrato normalizado | ✅ listo; se activa con `OFFICIAL_WEATHER_URL` |
-| Avisos oficiales SENAMHI | ❌ no integrados (ver [docs/FUENTES_DATOS.md](docs/FUENTES_DATOS.md)); se enlaza al sitio oficial |
+| Página principal con navegación que se adapta a móvil, tableta y escritorio | Sí |
+| Selección de departamento → municipio → cultivo (9 departamentos, 32 municipios) | Sí |
+| Clima: pronóstico **Open-Meteo**, historial y climatología **NASA POWER**, riesgo de helada, tormentas | Sí: datos reales (con caché y respaldo) |
+| Recomendación de siembra con factor decisivo, acción principal y fuentes | Sí: **Quinua en el Altiplano** (Oruro, Potosí, La Paz) · Papa y Maíz en modo *demostración* · Haba y Cebada sin reglas |
+| Registro e inicio de sesión de agricultores (celular + clave) | Sí |
+| Comunidades con aprobación del administrador; solicitudes de unión aprobadas por el representante | Sí |
+| Reuniones, confirmación de asistencia, avisos, reportes de helada/granizo, historial | Sí |
+| Panel de administración: comunidades, permisos, usuarios, reportes | Sí |
+| Asistente de WhatsApp | **SIMULADOR** (no conectado). Arquitectura y webhook oficial listos para credenciales |
+| Módulo educativo "Aprendamos sobre nuestro campo" (7 lecciones con preguntas y fuentes) | Sí: español · quechua/aimara pendientes de revisión lingüística |
+| Avisos regionales segmentados (nacional, departamento, municipio o cultivo), publicados por administradores o editores, con vigencia y etiqueta *no oficial* | Sí |
+| Cultivos de interés en el perfil (filtran los avisos que recibe cada persona) | Sí |
+| Biblioteca filtrable por cultivo, tipo y departamento (8 guías con nota de fuente) | Sí |
+| Cobertura nacional (mapa de municipios y qué hay en cada departamento), privacidad y términos | Sí |
+| Adaptador para fuente meteorológica oficial con contrato normalizado | Sí: listo; se activa con `OFFICIAL_WEATHER_URL` |
+| Avisos oficiales SENAMHI | No: no integrados (ver [docs/FUENTES_DATOS.md](docs/FUENTES_DATOS.md)); se enlaza al sitio oficial |
 
 Nada se presenta como algo que no es: los datos **simulados**, las **observaciones comunitarias**, los **datos ingresados por el agricultor** y los **pronósticos** llevan etiquetas distintas en la interfaz y en la API.
 

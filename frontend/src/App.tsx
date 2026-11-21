@@ -67,7 +67,7 @@ function OfflineBanner() {
   const when = cachedAt ? new Date(cachedAt).toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' }) : null
   return (
     <div role="status" data-testid="offline-banner" className="border-b-2 border-ocre bg-sol-50 px-4 py-2 text-center font-semibold text-sol-ink">
-      📶 Sin conexión.{cachedAt !== null ? ` Mostrando datos guardados${when ? ` (${when})` : ''}` : ' Se mostrarán los últimos datos guardados.'}
+      Sin conexión.{cachedAt !== null ? ` Mostrando datos guardados${when ? ` (${when})` : ''}` : ' Se mostrarán los últimos datos guardados.'}
     </div>
   )
 }

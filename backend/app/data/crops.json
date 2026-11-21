@@ -10,28 +10,53 @@
     "calendario": 0.25,
     "helada": 0.25,
     "humedad": 0.25,
-    "lluvia": 0.10,
+    "lluvia": 0.1,
     "tormenta": 0.05,
-    "temperatura": 0.10
+    "temperatura": 0.1
   },
-  "critical_criteria": ["calendario", "helada", "humedad"],
-  "key_factor_priority": ["helada", "humedad", "calendario", "lluvia", "temperatura", "tormenta"],
+  "critical_criteria": [
+    "calendario",
+    "helada",
+    "humedad"
+  ],
+  "key_factor_priority": [
+    "helada",
+    "humedad",
+    "calendario",
+    "lluvia",
+    "temperatura",
+    "tormenta"
+  ],
   "aggregation": {
-    "green_min_score": 0.80,
+    "green_min_score": 0.8,
     "_explicacion": "verde=1, amarillo=0.5, rojo=0. Si un criterio crítico es rojo el resultado es rojo; si un criterio crítico no tiene datos el resultado es 'información insuficiente'; si el puntaje ponderado es >= green_min_score y ningún criterio crítico está en amarillo, el resultado es verde; en otro caso amarillo."
   },
   "soil_model_thresholds": {
     "_explicacion": "Umbrales experimentales para humedad estimada por modelos (no medida en su terreno).",
-    "open_meteo_m3m3": {"green": 0.20, "yellow": 0.12},
-    "nasa_gwettop": {"green": 0.50, "yellow": 0.30}
+    "open_meteo_m3m3": {
+      "green": 0.2,
+      "yellow": 0.12
+    },
+    "nasa_gwettop": {
+      "green": 0.5,
+      "yellow": 0.3
+    }
   },
   "crops": {
     "quinua": {
       "name": "Quinua",
-      "emoji": "🌾",
-      "varieties": ["Quinua Real Blanca", "Pandela", "Toledo", "Jacha Grano", "Sajama", "Otra / no sé"],
+      "varieties": [
+        "Quinua Real Blanca",
+        "Pandela",
+        "Toledo",
+        "Jacha Grano",
+        "Sajama",
+        "Otra / no sé"
+      ],
       "variety_note": "La variedad todavía no modifica el cálculo; se registra para futuras reglas por ciclo de cultivo.",
-      "regions": {"altiplano": "implemented"},
+      "regions": {
+        "altiplano": "implemented"
+      },
       "thresholds": {
         "frost_red_c": -2.0,
         "frost_yellow_c": 0.0,
@@ -52,10 +77,18 @@
     },
     "papa": {
       "name": "Papa",
-      "emoji": "🥔",
-      "varieties": ["Huaycha", "Sani Imilla", "Waych'a Paceña", "Desiree", "Otra / no sé"],
+      "varieties": [
+        "Huaycha",
+        "Sani Imilla",
+        "Waych'a Paceña",
+        "Desiree",
+        "Otra / no sé"
+      ],
       "variety_note": "La variedad todavía no modifica el cálculo.",
-      "regions": {"altiplano": "demo", "valles": "demo"},
+      "regions": {
+        "altiplano": "demo",
+        "valles": "demo"
+      },
       "thresholds": {
         "frost_red_c": -1.0,
         "frost_yellow_c": 1.0,
@@ -64,15 +97,26 @@
         "rain_ok_7d_mm": 12.0,
         "rain_low_7d_mm": 4.0
       },
-      "notes": ["El follaje de la papa es sensible a temperaturas bajo cero."],
-      "sources": ["Umbrales preliminares de demostración. Requieren revisión con PROINPA / INIAF u otros técnicos."]
+      "notes": [
+        "El follaje de la papa es sensible a temperaturas bajo cero."
+      ],
+      "sources": [
+        "Umbrales preliminares de demostración. Requieren revisión con PROINPA / INIAF u otros técnicos."
+      ]
     },
     "maiz": {
       "name": "Maíz",
-      "emoji": "🌽",
-      "varieties": ["Híbrido comercial", "Cubano amarillo", "Variedad local", "Otra / no sé"],
+      "varieties": [
+        "Híbrido comercial",
+        "Cubano amarillo",
+        "Variedad local",
+        "Otra / no sé"
+      ],
       "variety_note": "La variedad todavía no modifica el cálculo.",
-      "regions": {"llanos": "demo", "valles": "demo"},
+      "regions": {
+        "llanos": "demo",
+        "valles": "demo"
+      },
       "thresholds": {
         "frost_red_c": 0.0,
         "frost_yellow_c": 3.0,
@@ -81,40 +125,127 @@
         "rain_ok_7d_mm": 20.0,
         "rain_low_7d_mm": 8.0
       },
-      "notes": ["El maíz necesita suelo cálido para germinar de forma pareja."],
-      "sources": ["Umbrales preliminares de demostración. Requieren revisión con técnicos de la región."]
+      "notes": [
+        "El maíz necesita suelo cálido para germinar de forma pareja."
+      ],
+      "sources": [
+        "Umbrales preliminares de demostración. Requieren revisión con técnicos de la región."
+      ]
     },
     "haba": {
       "name": "Haba",
-      "emoji": "🫘",
-      "varieties": ["Usnayo", "Gigante de Copacabana", "Otra / no sé"],
+      "varieties": [
+        "Usnayo",
+        "Gigante de Copacabana",
+        "Otra / no sé"
+      ],
       "regions": {},
       "thresholds": null,
       "sources": []
     },
     "cebada": {
       "name": "Cebada",
-      "emoji": "🌾",
-      "varieties": ["IBTA-80", "Variedad local", "Otra / no sé"],
+      "varieties": [
+        "IBTA-80",
+        "Variedad local",
+        "Otra / no sé"
+      ],
       "regions": {},
       "thresholds": null,
       "sources": []
     }
   },
   "calendars": [
-    {"crop": "quinua", "department_id": "oruro", "window": ["09-01", "11-30"], "optimal": ["09-15", "10-31"],
-     "source": "Calendario orientativo para el Altiplano central y sur, basado en literatura general sobre quinua en Bolivia. Validar con técnicos locales."},
-    {"crop": "quinua", "department_id": "potosi", "window": ["09-01", "11-15"], "optimal": ["09-10", "10-20"],
-     "source": "Calendario orientativo (Altiplano sur). Validar con técnicos locales."},
-    {"crop": "quinua", "department_id": "la-paz", "window": ["09-15", "11-30"], "optimal": ["10-01", "11-15"],
-     "source": "Calendario orientativo (Altiplano norte y central). Validar con técnicos locales."},
-    {"crop": "papa", "department_id": "la-paz", "window": ["10-01", "12-15"], "optimal": ["10-15", "11-30"],
-     "source": "DEMOSTRACIÓN: ventana preliminar de 'siembra grande' en el Altiplano. Validar."},
-    {"crop": "papa", "department_id": "cochabamba", "window": ["08-01", "12-15"], "optimal": ["09-01", "11-15"],
-     "source": "DEMOSTRACIÓN: ventana preliminar para valles. Validar."},
-    {"crop": "maiz", "department_id": "santa-cruz", "window": ["11-01", "01-31"], "optimal": ["11-15", "12-31"],
-     "source": "DEMOSTRACIÓN: ventana preliminar de campaña de verano en llanos. Validar."},
-    {"crop": "maiz", "department_id": "cochabamba", "window": ["09-15", "12-15"], "optimal": ["10-01", "11-30"],
-     "source": "DEMOSTRACIÓN: ventana preliminar para valles. Validar."}
+    {
+      "crop": "quinua",
+      "department_id": "oruro",
+      "window": [
+        "09-01",
+        "11-30"
+      ],
+      "optimal": [
+        "09-15",
+        "10-31"
+      ],
+      "source": "Calendario orientativo para el Altiplano central y sur, basado en literatura general sobre quinua en Bolivia. Validar con técnicos locales."
+    },
+    {
+      "crop": "quinua",
+      "department_id": "potosi",
+      "window": [
+        "09-01",
+        "11-15"
+      ],
+      "optimal": [
+        "09-10",
+        "10-20"
+      ],
+      "source": "Calendario orientativo (Altiplano sur). Validar con técnicos locales."
+    },
+    {
+      "crop": "quinua",
+      "department_id": "la-paz",
+      "window": [
+        "09-15",
+        "11-30"
+      ],
+      "optimal": [
+        "10-01",
+        "11-15"
+      ],
+      "source": "Calendario orientativo (Altiplano norte y central). Validar con técnicos locales."
+    },
+    {
+      "crop": "papa",
+      "department_id": "la-paz",
+      "window": [
+        "10-01",
+        "12-15"
+      ],
+      "optimal": [
+        "10-15",
+        "11-30"
+      ],
+      "source": "DEMOSTRACIÓN: ventana preliminar de 'siembra grande' en el Altiplano. Validar."
+    },
+    {
+      "crop": "papa",
+      "department_id": "cochabamba",
+      "window": [
+        "08-01",
+        "12-15"
+      ],
+      "optimal": [
+        "09-01",
+        "11-15"
+      ],
+      "source": "DEMOSTRACIÓN: ventana preliminar para valles. Validar."
+    },
+    {
+      "crop": "maiz",
+      "department_id": "santa-cruz",
+      "window": [
+        "11-01",
+        "01-31"
+      ],
+      "optimal": [
+        "11-15",
+        "12-31"
+      ],
+      "source": "DEMOSTRACIÓN: ventana preliminar de campaña de verano en llanos. Validar."
+    },
+    {
+      "crop": "maiz",
+      "department_id": "cochabamba",
+      "window": [
+        "09-15",
+        "12-15"
+      ],
+      "optimal": [
+        "10-01",
+        "11-30"
+      ],
+      "source": "DEMOSTRACIÓN: ventana preliminar para valles. Validar."
+    }
   ]
 }

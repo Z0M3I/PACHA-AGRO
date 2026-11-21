@@ -37,7 +37,7 @@ export function MunicipalityList({ departmentId, onPick, selected }: { departmen
 export function OptionButton({ children, onClick, selected }: { children: React.ReactNode; onClick: () => void; selected?: boolean }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={selected}
-      className={`min-h-16 w-full rounded-2xl border-2 px-4 py-3 text-left text-lg font-semibold transition-colors ${selected ? 'border-bosque bg-brote text-bosque-800' : 'border-linea bg-papel hover:border-bosque-600 hover:bg-brote-50'}`}>
+      className={`min-h-16 w-full rounded-md border px-4 py-3 text-left text-lg font-semibold transition-colors ${selected ? 'border-bosque bg-brote text-bosque-800' : 'border-linea bg-white hover:border-bosque-600 hover:bg-brote-50'}`}>
       {children}
     </button>
   )
@@ -52,18 +52,18 @@ export function LocationSelector({ value, onChange }: { value: string | null; on
   const [dept, setDept] = useState<string | null>(current?.department_id ?? null)
   if (!open && current) {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-linea bg-papel px-4 py-3">
+      <div className="flex items-center justify-between gap-3 rounded-md border border-linea bg-white px-4 py-3">
         <div>
-          <div className="text-sm text-musgo">📍 {viaGps ? 'Su ubicación (GPS)' : 'Ubicación'}</div>
+          <div className="text-sm text-musgo">{viaGps ? 'Su ubicación (GPS)' : 'Ubicación'}</div>
           <div className="text-lg font-bold">{viaGps ? `Cerca de ${current.name}` : current.name}, {current.department_name}</div>
           {viaGps && <div className="text-sm text-musgo">A {gps!.distanceKm.toFixed(0)} km del centro del municipio</div>}
         </div>
-        <button className="min-h-12 rounded-xl px-3 font-semibold text-bosque underline underline-offset-4" onClick={() => setOpen(true)}>Cambiar</button>
+        <button className="min-h-12 rounded-md px-3 font-semibold text-bosque underline underline-offset-4" onClick={() => setOpen(true)}>Cambiar</button>
       </div>
     )
   }
   return (
-    <div className="rounded-2xl border-2 border-bosque bg-papel p-4">
+    <div className="rounded-md border border-bosque bg-white p-4">
       {!dept ? (
         <>
           <div className="mb-4"><GpsButton onLocated={() => setOpen(false)} /></div>

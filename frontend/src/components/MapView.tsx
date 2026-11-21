@@ -14,5 +14,5 @@ export default function MapView({ lat, lon, label }: { lat: number; lon: number;
     L.circleMarker([lat, lon], { radius: 10, color: '#1E4A2C', fillColor: '#F3D98B', fillOpacity: 0.9, weight: 3 }).addTo(map).bindPopup(label)
     return () => { map.remove() }
   }, [lat, lon, label])
-  return <div ref={ref} className="h-64 w-full overflow-hidden rounded-2xl border border-linea" role="img" aria-label={`Mapa de ${label}`} />
+  return <div ref={ref} className="h-64 w-full overflow-hidden rounded-md border border-linea" role="img" aria-label={`Mapa de ${label}`} />
 }

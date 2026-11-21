@@ -23,16 +23,19 @@ export function updatedAt(iso: string | null): string {
   return isNaN(d.getTime()) ? iso : d.toLocaleString('es-BO', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-export function weatherIcon(code: number | null, storm = false): { icon: string; text: string } {
-  if (storm || (code !== null && code >= 95)) return { icon: '⛈️', text: 'Tormenta' }
-  if (code === null) return { icon: '❔', text: 'Sin dato' }
-  if (code === 0) return { icon: '☀️', text: 'Despejado' }
-  if (code <= 3) return { icon: '⛅', text: 'Algo nublado' }
-  if (code <= 48) return { icon: '🌫️', text: 'Niebla' }
-  if (code <= 67) return { icon: '🌧️', text: 'Lluvia' }
-  if (code <= 77) return { icon: '🌨️', text: 'Nieve' }
-  if (code <= 82) return { icon: '🌦️', text: 'Chubascos' }
-  return { icon: '🌨️', text: 'Nieve' }
+export type WeatherIconName = 'sun' | 'cloudSun' | 'cloud' | 'fog' | 'rain' | 'snow' | 'storm'
+
+export function weatherIcon(code: number | null, storm = false): { icon: WeatherIconName | null; text: string } {
+  if (storm || (code !== null && code >= 95)) return { icon: 'storm', text: 'Tormenta' }
+  if (code === null) return { icon: null, text: 'Sin dato' }
+  if (code === 0) return { icon: 'sun', text: 'Despejado' }
+  if (code <= 2) return { icon: 'cloudSun', text: 'Algo nublado' }
+  if (code === 3) return { icon: 'cloud', text: 'Nublado' }
+  if (code <= 48) return { icon: 'fog', text: 'Niebla' }
+  if (code <= 67) return { icon: 'rain', text: 'Lluvia' }
+  if (code <= 77) return { icon: 'snow', text: 'Nieve' }
+  if (code <= 82) return { icon: 'rain', text: 'Chubascos' }
+  return { icon: 'snow', text: 'Nieve' }
 }
 
 export const round = (n: number | null | undefined) => (n === null || n === undefined ? '—' : `${Math.round(n)}°`)

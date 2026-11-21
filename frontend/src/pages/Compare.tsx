@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { LocationSelector } from '../components/LocationPicker'
 import { useApp } from '../lib/store'
-import { DataTag, STATUS_UI } from '../components/ui'
+import { DataTag, STATUS_UI, StatusMark } from '../components/ui'
 import { api } from '../lib/api'
 import type { Criterion, Recommendation } from '../lib/types'
 
@@ -17,7 +17,7 @@ function Condition({ criterion }: { criterion?: Criterion }) {
   if (!criterion) return <span>Sin datos</span>
   return (
     <div className="compare-condition">
-      <span><span aria-hidden="true">{STATUS_UI[criterion.status].emoji} </span>{STATUS_UI[criterion.status].label}</span>
+      <span className="inline-flex items-center gap-2"><StatusMark status={criterion.status} />{STATUS_UI[criterion.status].label}</span>
       <p>{criterion.explanation}</p>
       <DataTag kind={criterion.data_kind} />
       {criterion.source && <small>{criterion.source}</small>}

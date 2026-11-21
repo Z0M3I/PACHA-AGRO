@@ -18,5 +18,5 @@ export default function CoverageMap({ departments }: { departments: Department[]
     }
     return () => { map.remove() }
   }, [departments])
-  return <div ref={ref} className="h-80 w-full overflow-hidden rounded-2xl border border-linea" role="img" aria-label="Mapa de municipios de Bolivia con datos en AgroBolivia" />
+  return <div ref={ref} className="h-80 w-full overflow-hidden rounded-md border border-linea" role="img" aria-label="Mapa de municipios de Bolivia con datos en AgroBolivia" />
 }

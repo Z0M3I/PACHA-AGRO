@@ -23,9 +23,9 @@ function useContent(): [Content | null, string | null, () => void] {
 function Tabs({ current }: { current: 'lecciones' | 'biblioteca' }) {
   return (
     <nav aria-label="Secciones de aprendizaje" className="grid grid-cols-2 gap-2">
-      {([['lecciones', '#/aprender', '🎓 Lecciones'], ['biblioteca', '#/aprender/biblioteca', '📚 Biblioteca']] as const).map(([k, href, l]) => (
+      {([['lecciones', '#/aprender', 'Lecciones'], ['biblioteca', '#/aprender/biblioteca', 'Biblioteca']] as const).map(([k, href, l]) => (
         <a key={k} href={href} aria-current={current === k ? 'page' : undefined}
-          className={`flex min-h-12 items-center justify-center rounded-xl border-2 font-semibold ${current === k ? 'border-bosque bg-bosque text-white' : 'border-linea bg-papel text-tinta'}`}>{l}</a>
+          className={`flex min-h-12 items-center justify-center rounded-md border font-semibold ${current === k ? 'border-bosque bg-bosque text-white' : 'border-linea bg-white text-tinta'}`}>{l}</a>
       ))}
     </nav>
   )
@@ -46,11 +46,11 @@ function Lessons({ lessonId }: { lessonId?: string }) {
   }
   return (
     <div className="space-y-4">
-      <PageTitle icon="📚" title="Aprendamos sobre nuestro campo" subtitle="Lecciones cortas con una pregunta al final." />
+      <PageTitle title="Aprendamos sobre nuestro campo" subtitle="Lecciones cortas con una pregunta al final." />
       <Tabs current="lecciones" />
       <ArticleGrid items={c.lessons.map(lessonArticle)} />
       <Card>
-        <h2 className="font-bold">🗣️ Idiomas</h2>
+        <h2 className="font-bold">Idiomas</h2>
         <ul className="mt-1">{c.available_languages.map(x => <li key={x.code}>{x.name}: {x.status === 'pendiente' ? 'en preparación (requiere revisión lingüística)' : `${x.lessons} lecciones`}</li>)}</ul>
       </Card>
       <Notice tone="warn">{c.review_note}</Notice>
@@ -68,24 +68,24 @@ function LessonView({ l, next }: { l: Lesson; next?: Lesson }) {
       <h1 className="font-display text-[1.7rem] font-bold leading-tight text-bosque">{l.title}</h1>
       <ol className="space-y-3">
         {l.points.map((p, i) => (
-          <li key={i} className="flex gap-3 rounded-2xl border border-linea bg-papel p-4 text-lg">
+          <li key={i} className="flex gap-3 rounded-md border border-linea bg-white p-4 text-lg">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bosque font-bold text-white">{i + 1}</span><span>{p}</span>
           </li>
         ))}
       </ol>
-      <section className="rounded-2xl border-2 border-ocre bg-sol-50 p-4">
-        <h2 className="text-xl font-bold text-sol-ink">❓ Pregunta</h2>
+      <section className="rounded-md border border-ocre bg-sol-50 p-4">
+        <h2 className="text-xl font-bold text-sol-ink">Pregunta</h2>
         <p className="mt-1 text-lg">{l.quiz.question}</p>
         <div className="mt-3 grid gap-2">
           {l.quiz.options.map((o, i) => {
             const state = pick === null ? '' : i === l.quiz.answer ? 'border-bosque bg-brote' : i === pick ? 'border-rojo bg-rojo-50' : 'opacity-60'
-            return <button key={o} disabled={pick !== null} onClick={() => setPick(i)} className={`min-h-14 rounded-xl border-2 border-linea bg-papel px-4 text-left text-lg font-semibold ${state}`}>{o}</button>
+            return <button key={o} disabled={pick !== null} onClick={() => setPick(i)} className={`min-h-14 rounded-md border border-linea bg-white px-4 text-left text-lg font-semibold ${state}`}>{o}</button>
           })}
         </div>
-        {pick !== null && <p className="mt-3 text-lg" role="status"><strong>{pick === l.quiz.answer ? '✅ ¡Correcto!' : '❌ No exactamente.'}</strong> {l.quiz.explanation}</p>}
+        {pick !== null && <p className="mt-3 text-lg" role="status"><strong>{pick === l.quiz.answer ? '¡Correcto!' : 'No exactamente.'}</strong> {l.quiz.explanation}</p>}
       </section>
-      {next && <a href={`#/aprender/${next.id}`} className="flex min-h-14 items-center justify-center rounded-xl bg-bosque text-lg font-semibold text-white">Siguiente: {next.title} →</a>}
-      {!next && <Button variant="secondary" className="w-full" onClick={() => { window.location.hash = '/sembrar' }}>🌱 Probar: ¿cuándo puedo sembrar?</Button>}
+      {next && <a href={`#/aprender/${next.id}`} className="flex min-h-14 items-center justify-center rounded-md bg-bosque text-lg font-semibold text-white">Siguiente: {next.title} →</a>}
+      {!next && <Button variant="secondary" className="w-full" onClick={() => { window.location.hash = '/sembrar' }}>Probar: ¿cuándo puedo sembrar?</Button>}
       <p className="text-sm text-musgo"><strong>Fuentes:</strong> {l.sources.join(' · ')}</p>
     </article>
   )
@@ -122,10 +122,10 @@ function LibraryView({ itemId }: { itemId?: string }) {
   }
 
   const items = lib.items.filter(i => (!crop || i.crop === null || i.crop === crop) && (!type || i.type === type) && (!dept || i.department_id === null || i.department_id === dept))
-  const sel = 'min-h-12 w-full rounded-xl border-2 border-linea bg-white px-3 text-lg'
+  const sel = 'min-h-12 w-full rounded-md border border-linea bg-white px-3 text-lg'
   return (
     <div className="space-y-4">
-      <PageTitle icon="📚" title="Biblioteca" subtitle="Guías y fichas cortas. Filtre por su cultivo o su zona." />
+      <PageTitle title="Biblioteca" subtitle="Guías y fichas cortas. Filtre por su cultivo o su zona." />
       <Tabs current="biblioteca" />
       <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
         <label className="block"><span className="mb-1 block font-semibold">Cultivo</span>

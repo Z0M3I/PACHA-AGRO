@@ -32,8 +32,8 @@ export function GpsButton({ onLocated }: { onLocated?: (g: Gps, info: Located) =
   return (
     <div>
       <button type="button" onClick={locate} disabled={busy} data-testid="gps-button"
-        className="min-h-14 w-full rounded-2xl border-2 border-bosque bg-brote-50 px-4 text-lg font-semibold text-bosque disabled:opacity-60">
-        {busy ? 'Buscando su ubicación…' : '📍 Usar mi ubicación (GPS)'}
+        className="min-h-14 w-full rounded-md border border-bosque bg-brote-50 px-4 text-lg font-semibold text-bosque disabled:opacity-60">
+        {busy ? 'Buscando su ubicación…' : 'Usar mi ubicación (GPS)'}
       </button>
       {msg && <p className="mt-2 text-sol-ink" role="status">{msg}</p>}
     </div>

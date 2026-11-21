@@ -16,7 +16,7 @@ def list_crops():
     cfg = crops_config()
     return {
         "disclaimer": cfg["disclaimer"], "status_labels": cfg["status_labels"],
-        "crops": [{"id": k, "name": v["name"], "emoji": v["emoji"], "varieties": v["varieties"], "regions": v.get("regions", {})}
+        "crops": [{"id": k, "name": v["name"], "varieties": v["varieties"], "regions": v.get("regions", {})}
                   for k, v in cfg["crops"].items()],
         "config": {"weights": cfg["weights"], "critical_criteria": cfg["critical_criteria"], "aggregation": cfg["aggregation"]},
         "calendars": [{"crop": c["crop"], "department_id": c["department_id"]} for c in cfg["calendars"]],

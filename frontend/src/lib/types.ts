@@ -24,7 +24,7 @@ export interface Recommendation {
   key_factor: Criterion | null; main_action: string; missing_data: string[]; confidence_explanation: string
   weather_summary?: { forecast_available: boolean; forecast_error: string | null; forecast_source: string; recent_source: string | null; fetched_at: string | null; stale?: boolean; stale_fetched_at?: string | null }
 }
-export interface Crop { id: string; name: string; emoji: string; varieties: string[]; regions: Record<string, string> }
+export interface Crop { id: string; name: string; varieties: string[]; regions: Record<string, string> }
 export interface Community { id: number; name: string; description: string; status: string; is_demo: boolean; department_name: string; municipality_id: string; municipality_name: string; members: number; representatives: string[]; my_membership?: { id: number; role: string; status: string } | null }
 export interface Meeting { id: number; title: string; description: string; place: string; starts_at: string; cancelled: boolean; created_by: string; attendance: { si: number; no: number; tal_vez: number }; my_response: string | null }
 export interface RegionalNotice {

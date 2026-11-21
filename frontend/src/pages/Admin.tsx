@@ -9,7 +9,7 @@ export default function AdminPage() {
   if (!user || (user.role !== 'admin' && user.role !== 'editor')) return <ErrorBox message="Solo para administradores o editores de contenido." />
   return (
     <div className="space-y-6">
-      {user.role === 'editor' && <PageTitle icon="📢" title="Publicar avisos" subtitle="Usted es editor de contenido." />}
+      {user.role === 'editor' && <PageTitle title="Publicar avisos" subtitle="Usted es editor de contenido." />}
       <PublishNotices />
       {user.role === 'admin' && <Admin />}
     </div>
@@ -46,7 +46,7 @@ function Admin() {
   if (!pending || !users || !report || !approved) return <Loading />
   return (
     <div className="space-y-5">
-      <PageTitle icon="🛠️" title="Administración" subtitle="Comunidades, permisos y reportes." />
+      <PageTitle title="Administración" subtitle="Comunidades, permisos y reportes." />
       <section>
         <h2 className="mb-2 text-xl font-bold">Comunidades por aprobar ({pending.length})</h2>
         {pending.length === 0 ? <Notice>No hay solicitudes.</Notice> : pending.map(c => (
@@ -84,7 +84,7 @@ function Admin() {
         <p className="mb-2 text-musgo">¿Alguien olvidó su clave? Verifique su identidad en persona y dele una clave temporal: deberá cambiarla al ingresar.</p>
         {temp && <Notice tone="ok"><span data-testid="temp-password">Clave temporal de {temp.name}: <strong className="text-xl tracking-widest">{temp.pw}</strong></span><br />Entréguela en persona. No se volverá a mostrar.</Notice>}
         <ul className="space-y-2">{users.map(u => (
-          <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-linea bg-papel p-3">
+          <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-linea bg-white p-3">
             <span>{u.full_name} <span className="text-sm text-musgo">· …{u.phone_last4} · {u.role}{u.is_demo ? ' · demo' : ''}{!u.is_active ? ' · inactivo' : ''}</span></span>
             {u.is_active && u.role !== 'admin' && <span className="flex flex-wrap gap-1">
               <Button variant="ghost" onClick={() => resetPw(u.id, u.full_name)}>Clave temporal</Button>
@@ -97,7 +97,7 @@ function Admin() {
   )
 }
 
-const STATUS_TXT: Record<string, string> = { simulado: '🧪 Simulado', enviado: '📤 Enviado', entregado: '📬 Entregado', leido: '👁️ Leído', fallido: '⚠️ Fallido' }
+const STATUS_TXT: Record<string, string> = { simulado: 'Simulado', enviado: 'Enviado', entregado: 'Entregado', leido: 'Leído', fallido: 'Fallido' }
 
 /** Historial de mensajes salientes con su estado (idea de PACHAAGRO). */
 function MessageHistory() {
@@ -109,7 +109,7 @@ function MessageHistory() {
       <p className="mb-2 text-musgo">Sin credenciales de Meta todos quedan como «Simulado»: no se envió nada real.</p>
       {!rows ? <Loading /> : rows.length === 0 ? <Notice>Aún no hay mensajes.</Notice> : (
         <ul className="space-y-2">{rows.slice(0, 20).map(m => (
-          <li key={m.id} className="flex items-center justify-between gap-2 rounded-xl border border-linea bg-papel p-3">
+          <li key={m.id} className="flex items-center justify-between gap-2 rounded-md border border-linea bg-white p-3">
             <span>{m.user_name} <span className="text-sm text-musgo">· {m.template} · {m.created_at.replace('T', ' ')}</span>{m.error && <span className="block text-sm text-rojo">{m.error}</span>}</span>
             <span className="shrink-0 font-semibold">{STATUS_TXT[m.status] ?? m.status}</span>
           </li>))}</ul>
@@ -140,7 +140,7 @@ function PublishNotices() {
       await api('/api/notices', { body: {
         title: f.title, summary: f.summary, body: f.body, kind: f.kind, scope: f.scope, expires_at: local,
         department_id: f.department_id || null, municipality_id: f.municipality_id || null, crop_id: f.scope === 'cultivo' ? f.crop_id : null } })
-      setF(empty); setMsg('✅ Aviso publicado.'); load()
+      setF(empty); setMsg('Aviso publicado.'); load()
     } catch (e) { setErr((e as Error).message) }
   }
   const notify = async (n: RegionalNotice) => {
@@ -151,9 +151,9 @@ function PublishNotices() {
   const sel = inputCls
   return (
     <section className="space-y-3">
-      <h2 className="text-xl font-bold">📢 Avisos regionales</h2>
+      <h2 className="text-xl font-bold">Avisos regionales</h2>
       <Notice tone="warn">Se muestran como <strong>avisos de la plataforma, no oficiales</strong>. No copie ni invente alertas del SENAMHI.</Notice>
-      <form onSubmit={submit} className="space-y-3 rounded-2xl border-2 border-bosque bg-papel p-4">
+      <form onSubmit={submit} className="space-y-3 rounded-md border border-bosque bg-white p-4">
         <Field label="Título"><input className={inputCls} value={f.title} onChange={e => setF({ ...f, title: e.target.value })} required minLength={5} maxLength={140} /></Field>
         <Field label="Resumen (lo que llega por WhatsApp)"><textarea className={inputCls} rows={2} value={f.summary} onChange={e => setF({ ...f, summary: e.target.value })} required minLength={5} maxLength={300} /></Field>
         <Field label="Detalle (opcional)"><textarea className={inputCls} rows={3} value={f.body} onChange={e => setF({ ...f, body: e.target.value })} maxLength={3000} /></Field>
@@ -174,7 +174,7 @@ function PublishNotices() {
         {f.scope === 'cultivo' && (
           <Field label="Cultivo"><select className={sel} value={f.crop_id} onChange={e => setF({ ...f, crop_id: e.target.value })}>
             <option value="quinua">Quinua</option><option value="papa">Papa</option><option value="maiz">Maíz</option><option value="haba">Haba</option><option value="cebada">Cebada</option></select></Field>)}
-        {err && <p role="alert" className="font-semibold text-rojo">⚠️ {err}</p>}
+        {err && <p role="alert" className="font-semibold text-rojo">{err}</p>}
         <Button className="w-full">Publicar aviso</Button>
       </form>
       {msg && <Notice tone="ok">{msg}</Notice>}
@@ -183,7 +183,7 @@ function PublishNotices() {
           <div className="text-sm font-semibold text-tierra">{n.kind_label} · Para: {n.scope_label}{n.is_demo ? ' · DEMO' : ''}</div>
           <div className="text-lg font-bold">{n.title}</div>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <Button variant="secondary" onClick={() => notify(n)}>💬 Enviar por WhatsApp</Button>
+            <Button variant="secondary" onClick={() => notify(n)}>Enviar por WhatsApp</Button>
             <Button variant="danger" onClick={() => archive(n)}>Retirar</Button>
           </div>
         </Card>
