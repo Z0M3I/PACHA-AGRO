@@ -1,0 +1,119 @@
+{
+  "version": "0.1-experimental",
+  "disclaimer": "Reglas, pesos y umbrales EXPERIMENTALES definidos para el prototipo a partir de literatura general. No son predicciones validadas científicamente. Deben revisarse con ingenieros agrónomos y técnicos locales antes de usarse como recomendación real.",
+  "status_labels": {
+    "implemented": "Escenario implementado con datos meteorológicos reales y reglas documentadas (pendientes de validación agronómica).",
+    "demo": "Escenario de DEMOSTRACIÓN: reglas preliminares, no validadas.",
+    "no_rules": "Aún no existen reglas suficientes para este cultivo en esta región."
+  },
+  "weights": {
+    "calendario": 0.25,
+    "helada": 0.25,
+    "humedad": 0.25,
+    "lluvia": 0.10,
+    "tormenta": 0.05,
+    "temperatura": 0.10
+  },
+  "critical_criteria": ["calendario", "helada", "humedad"],
+  "aggregation": {
+    "green_min_score": 0.80,
+    "_explicacion": "verde=1, amarillo=0.5, rojo=0. Si un criterio crítico es rojo el resultado es rojo; si un criterio crítico no tiene datos el resultado es 'información insuficiente'; si el puntaje ponderado es >= green_min_score y ningún criterio crítico está en amarillo, el resultado es verde; en otro caso amarillo."
+  },
+  "soil_model_thresholds": {
+    "_explicacion": "Umbrales experimentales para humedad estimada por modelos (no medida en su terreno).",
+    "open_meteo_m3m3": {"green": 0.20, "yellow": 0.12},
+    "nasa_gwettop": {"green": 0.50, "yellow": 0.30}
+  },
+  "crops": {
+    "quinua": {
+      "name": "Quinua",
+      "emoji": "🌾",
+      "varieties": ["Quinua Real Blanca", "Pandela", "Toledo", "Jacha Grano", "Sajama", "Otra / no sé"],
+      "variety_note": "La variedad todavía no modifica el cálculo; se registra para futuras reglas por ciclo de cultivo.",
+      "regions": {"altiplano": "implemented"},
+      "thresholds": {
+        "frost_red_c": -2.0,
+        "frost_yellow_c": 0.0,
+        "germination_mean_min_c": 5.0,
+        "heavy_rain_day_mm": 25.0,
+        "rain_ok_7d_mm": 10.0,
+        "rain_low_7d_mm": 3.0
+      },
+      "notes": [
+        "La quinua tolera heladas leves en etapas avanzadas, pero las plántulas recién emergidas son más sensibles.",
+        "En el Altiplano sur es común sembrar aprovechando la humedad residual del suelo."
+      ],
+      "sources": [
+        "Jacobsen, S.-E., Mujica, A., Jensen, C. R. (2003). The resistance of quinoa to adverse abiotic factors. Food Reviews International, 19(1-2).",
+        "Bois, J. F. et al. (2006). Response of some Andean cultivars of quinoa to temperature: effects on germination, phenology, growth and freezing. European Journal of Agronomy, 25(4).",
+        "FAO y PROINPA: publicaciones técnicas sobre el cultivo de quinua en Bolivia (consultar versiones vigentes)."
+      ]
+    },
+    "papa": {
+      "name": "Papa",
+      "emoji": "🥔",
+      "varieties": ["Huaycha", "Sani Imilla", "Waych'a Paceña", "Desiree", "Otra / no sé"],
+      "variety_note": "La variedad todavía no modifica el cálculo.",
+      "regions": {"altiplano": "demo", "valles": "demo"},
+      "thresholds": {
+        "frost_red_c": -1.0,
+        "frost_yellow_c": 1.0,
+        "germination_mean_min_c": 7.0,
+        "heavy_rain_day_mm": 30.0,
+        "rain_ok_7d_mm": 12.0,
+        "rain_low_7d_mm": 4.0
+      },
+      "notes": ["El follaje de la papa es sensible a temperaturas bajo cero."],
+      "sources": ["Umbrales preliminares de demostración. Requieren revisión con PROINPA / INIAF u otros técnicos."]
+    },
+    "maiz": {
+      "name": "Maíz",
+      "emoji": "🌽",
+      "varieties": ["Híbrido comercial", "Cubano amarillo", "Variedad local", "Otra / no sé"],
+      "variety_note": "La variedad todavía no modifica el cálculo.",
+      "regions": {"llanos": "demo", "valles": "demo"},
+      "thresholds": {
+        "frost_red_c": 0.0,
+        "frost_yellow_c": 3.0,
+        "germination_mean_min_c": 12.0,
+        "heavy_rain_day_mm": 45.0,
+        "rain_ok_7d_mm": 20.0,
+        "rain_low_7d_mm": 8.0
+      },
+      "notes": ["El maíz necesita suelo cálido para germinar de forma pareja."],
+      "sources": ["Umbrales preliminares de demostración. Requieren revisión con técnicos de la región."]
+    },
+    "haba": {
+      "name": "Haba",
+      "emoji": "🫘",
+      "varieties": ["Usnayo", "Gigante de Copacabana", "Otra / no sé"],
+      "regions": {},
+      "thresholds": null,
+      "sources": []
+    },
+    "cebada": {
+      "name": "Cebada",
+      "emoji": "🌾",
+      "varieties": ["IBTA-80", "Variedad local", "Otra / no sé"],
+      "regions": {},
+      "thresholds": null,
+      "sources": []
+    }
+  },
+  "calendars": [
+    {"crop": "quinua", "department_id": "oruro", "window": ["09-01", "11-30"], "optimal": ["09-15", "10-31"],
+     "source": "Calendario orientativo para el Altiplano central y sur, basado en literatura general sobre quinua en Bolivia. Validar con técnicos locales."},
+    {"crop": "quinua", "department_id": "potosi", "window": ["09-01", "11-15"], "optimal": ["09-10", "10-20"],
+     "source": "Calendario orientativo (Altiplano sur). Validar con técnicos locales."},
+    {"crop": "quinua", "department_id": "la-paz", "window": ["09-15", "11-30"], "optimal": ["10-01", "11-15"],
+     "source": "Calendario orientativo (Altiplano norte y central). Validar con técnicos locales."},
+    {"crop": "papa", "department_id": "la-paz", "window": ["10-01", "12-15"], "optimal": ["10-15", "11-30"],
+     "source": "DEMOSTRACIÓN: ventana preliminar de 'siembra grande' en el Altiplano. Validar."},
+    {"crop": "papa", "department_id": "cochabamba", "window": ["08-01", "12-15"], "optimal": ["09-01", "11-15"],
+     "source": "DEMOSTRACIÓN: ventana preliminar para valles. Validar."},
+    {"crop": "maiz", "department_id": "santa-cruz", "window": ["11-01", "01-31"], "optimal": ["11-15", "12-31"],
+     "source": "DEMOSTRACIÓN: ventana preliminar de campaña de verano en llanos. Validar."},
+    {"crop": "maiz", "department_id": "cochabamba", "window": ["09-15", "12-15"], "optimal": ["10-01", "11-30"],
+     "source": "DEMOSTRACIÓN: ventana preliminar para valles. Validar."}
+  ]
+}

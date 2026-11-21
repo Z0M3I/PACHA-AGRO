@@ -1,0 +1,127 @@
+{
+  "language": "es",
+  "language_name": "Español",
+  "review_status": "borrador",
+  "review_note": "Contenido educativo general redactado para el prototipo. Debe ser revisado por un ingeniero agrónomo antes de su uso público.",
+  "lessons": [
+    {
+      "id": "pronostico",
+      "title": "Cómo leer un pronóstico",
+      "icon": "forecast",
+      "minutes": 2,
+      "points": [
+        "Un pronóstico dice lo que PROBABLEMENTE pasará. No es seguro.",
+        "Mientras más lejano es el día, menos confiable es el pronóstico. Los próximos 3 días son los más confiables.",
+        "\"Probabilidad de lluvia 70 %\" quiere decir que de cada 10 días parecidos, en 7 llovió.",
+        "La temperatura mínima suele ocurrir al amanecer.",
+        "Los avisos oficiales en Bolivia los publica el SENAMHI."
+      ],
+      "quiz": {"question": "Si el pronóstico dice 30 % de lluvia, ¿es seguro que no lloverá?",
+               "options": ["Sí, no lloverá", "No, puede llover igual"], "answer": 1,
+               "explanation": "30 % es poca probabilidad, pero no es cero. Puede llover."},
+      "sources": ["Organización Meteorológica Mundial (OMM): material de divulgación sobre pronósticos.", "SENAMHI Bolivia: senamhi.gob.bo"]
+    },
+    {
+      "id": "heladas",
+      "title": "¿Qué es una helada?",
+      "icon": "frost",
+      "minutes": 2,
+      "points": [
+        "Hay helada cuando la temperatura baja a 0 °C o menos y el agua de las plantas se congela.",
+        "Las noches despejadas, sin nubes y sin viento son las más peligrosas.",
+        "A ras del suelo puede hacer 2 a 4 °C más frío que lo que dice el pronóstico (que mide a 2 metros).",
+        "Las plantas recién nacidas son las más delicadas.",
+        "En el Altiplano las heladas son frecuentes casi todo el año: revise siempre la mínima."
+      ],
+      "quiz": {"question": "¿Qué noche tiene más riesgo de helada?",
+               "options": ["Noche nublada", "Noche despejada y sin viento"], "answer": 1,
+               "explanation": "Sin nubes, el calor del suelo se escapa al cielo y la temperatura baja más."},
+      "sources": ["FAO (2010). Protección contra las heladas: fundamentos, práctica y economía."]
+    },
+    {
+      "id": "granizo",
+      "title": "Cómo afecta el granizo",
+      "icon": "hail",
+      "minutes": 2,
+      "points": [
+        "El granizo rompe hojas y tallos y puede tumbar flores y granos.",
+        "Suele caer con tormentas de la tarde, en época de lluvias.",
+        "Es muy local: puede caer en una parcela y no en la de al lado.",
+        "Los pronósticos todavía no pueden decir con seguridad dónde caerá granizo.",
+        "Avisar a su comunidad cuando cae ayuda a todos a estar atentos."
+      ],
+      "quiz": {"question": "¿El pronóstico puede decir exactamente en qué parcela caerá granizo?",
+               "options": ["Sí", "No"], "answer": 1,
+               "explanation": "El granizo es muy local. Por eso los reportes de la comunidad son útiles."},
+      "sources": ["Organización Meteorológica Mundial (OMM): tormentas y granizo."]
+    },
+    {
+      "id": "antes-de-sembrar",
+      "title": "Antes de sembrar",
+      "icon": "seed",
+      "minutes": 3,
+      "points": [
+        "Revise el pronóstico de heladas de la próxima semana.",
+        "Revise la humedad de su terreno.",
+        "Use semilla sana y seleccionada.",
+        "Respete la época de siembra de su zona.",
+        "Converse con su comunidad y técnico antes de decidir."
+      ],
+      "quiz": {"question": "¿Qué debe revisar primero antes de sembrar?",
+               "options": ["El color del cielo de hoy", "El pronóstico de heladas y la humedad del suelo"], "answer": 1,
+               "explanation": "La helada y la falta de humedad son los riesgos más comunes al sembrar."},
+      "sources": ["Contenido general de extensión agrícola. Pendiente de validación agronómica."]
+    },
+    {
+      "id": "humedad",
+      "title": "La humedad del suelo",
+      "icon": "soil",
+      "minutes": 2,
+      "points": [
+        "La semilla necesita humedad para despertar y germinar.",
+        "Prueba sencilla: saque tierra a 5-10 cm y apriétela en la mano.",
+        "Si forma un terrón que no se desarma, hay humedad.",
+        "Si se desmorona como polvo, el suelo está seco.",
+        "Las estimaciones de humedad por satélite son para zonas grandes; su terreno puede ser distinto."
+      ],
+      "quiz": {"question": "Aprieta la tierra y se deshace como polvo. ¿Cómo está el suelo?",
+               "options": ["Húmedo", "Seco"], "answer": 1,
+               "explanation": "Si no forma terrón, le falta humedad para que germine la semilla."},
+      "sources": ["Contenido general de extensión agrícola. Pendiente de validación agronómica."]
+    },
+    {
+      "id": "terreno",
+      "title": "Preparar el terreno",
+      "icon": "field",
+      "minutes": 2,
+      "points": [
+        "Limpie restos de malezas y piedras grandes.",
+        "Remueva la tierra para que entre aire y agua.",
+        "Evite trabajar el suelo cuando está muy mojado: se compacta.",
+        "Agregar estiércol bien descompuesto mejora el suelo.",
+        "En laderas, siembre siguiendo las curvas del terreno para evitar que la lluvia arrastre la tierra."
+      ],
+      "quiz": {"question": "¿Conviene arar cuando el suelo está muy mojado?",
+               "options": ["Sí", "No, se compacta"], "answer": 1,
+               "explanation": "El suelo muy mojado se aprieta y luego las raíces crecen mal."},
+      "sources": ["Contenido general de extensión agrícola. Pendiente de validación agronómica."]
+    },
+    {
+      "id": "riesgos",
+      "title": "Reducir riesgos",
+      "icon": "shield",
+      "minutes": 3,
+      "points": [
+        "No siembre todo el mismo día: divida la siembra en fechas distintas.",
+        "Siembre varias parcelas en lugares distintos si puede.",
+        "Use variedades adaptadas a su zona.",
+        "Revise el pronóstico cada día en época de siembra.",
+        "Comparta lo que observa con su comunidad: helada, granizo, plagas."
+      ],
+      "quiz": {"question": "¿Por qué ayuda sembrar en fechas distintas?",
+               "options": ["Una helada no daña todo a la vez", "Para gastar más semilla"], "answer": 0,
+               "explanation": "Si una helada llega un día, no afecta a toda su siembra."},
+      "sources": ["Contenido general de gestión de riesgos agrícolas. Pendiente de validación agronómica."]
+    }
+  ]
+}
