@@ -7,6 +7,7 @@ import { useApp } from './lib/store'
 import Home from './pages/Home'
 import Sow from './pages/Sow'
 
+const Desktop = lazy(() => import('./pages/Desktop'))
 const Weather = lazy(() => import('./pages/Weather'))
 const CommunityHome = lazy(() => import('./pages/Community'))
 const CommunityDetail = lazy(() => import('./pages/CommunityDetail'))
@@ -37,6 +38,7 @@ function Page({ parts }: { parts: string[] }) {
 export default function App() {
   const parts = useRoute()
   const { user } = useApp()
+  if (parts[0] === 'escritorio') return <Suspense fallback={<Loading />}><Desktop /></Suspense>
   const nav = ['', 'sembrar', 'clima', 'comunidad', 'aprender'].includes(parts[0] ?? '') ? (parts[0] ?? '') : parts[0] === 'whatsapp' ? '' : 'comunidad'
   return (
     <div className="min-h-screen pb-nav">
@@ -46,6 +48,7 @@ export default function App() {
           <a href="#/" className="flex items-center gap-2" aria-label="AgroBolivia, inicio">
             <LogoMark size={36} /><span className="font-display text-xl font-bold text-bosque">AgroBolivia</span>
           </a>
+          <a href="#/escritorio" className="hidden font-semibold text-bosque underline lg:inline">Escritorio</a>
           <a href={user ? '#/perfil' : '#/ingresar'} className="flex min-h-12 items-center rounded-full border-2 border-linea px-3 font-semibold text-bosque">
             {user ? `👤 ${user.full_name.split(' ')[0]}` : 'Ingresar'}
           </a>
