@@ -115,3 +115,69 @@ def test_simulated_mode_is_labeled():
 def test_weights_are_documented_and_sum_to_one():
     w = crops_config()["weights"]
     assert pytest.approx(sum(w.values())) == 1.0
+
+
+# --- Factor decisivo, acción principal y explicación de confianza ---
+
+def test_key_factor_is_frost_when_frost_is_red():
+    r = run(wx([3, -4, 2, 3, 3, 3, 3]))
+    assert r["key_factor"]["id"] == "helada" and r["key_factor"]["status"] == "rojo"
+    assert r["main_action"].startswith("Espere")
+
+
+def test_key_factor_prefers_critical_over_noncritical_at_same_status():
+    # lluvia fuerte (no crítico, amarillo) y helada leve (crítico, amarillo): decide la helada
+    r = run(wx([3, -1, 2, 3, 3, 3, 3], precip=[0, 30, 0, 0, 0, 0, 0]))
+    assert r["key_factor"]["id"] == "helada"
+
+
+def test_key_factor_red_beats_yellow_even_if_noncritical():
+    r = run(wx([3, -1, 2, 3, 3, 3, 3], precip=[0] * 7), moisture="poca")
+    reds = [c["id"] for c in r["criteria"] if c["status"] == "rojo"]
+    assert reds == ["lluvia"] and r["key_factor"]["id"] == "lluvia"
+
+
+def test_dry_soil_main_action_mentions_rain_or_irrigation():
+    r = run(wx([3] * 7), moisture="no")
+    assert r["key_factor"]["id"] == "humedad" and "riegue" in r["main_action"]
+
+
+def test_late_vs_early_calendar_action():
+    late = run(wx([3] * 7), today=date(2026, 11, 20))
+    assert late["key_factor"]["id"] == "calendario" and "ya pasó" in late["main_action"]
+    early = run(wx([3] * 7), today=date(2026, 9, 5))
+    assert early["key_factor"]["id"] == "calendario" and "aún no empieza" in early["main_action"]
+
+
+def test_green_result_has_positive_action_and_critical_key_factor():
+    r = run(wx([3, 4, 3, 5, 4, 3, 4]))
+    assert r["status"] == "verde" and r["key_factor"]["id"] in ("calendario", "helada", "humedad")
+    assert r["main_action"].startswith("Puede preparar")
+
+
+def test_missing_data_listed_and_action_when_insufficient():
+    w = wx([3] * 7, soil=None)
+    w.soil_model_kind = None
+    r = run(w, moisture="no_se")
+    assert r["status"] == "gris" and r["key_factor"]["id"] == "humedad"
+    assert "Humedad del suelo" in r["missing_data"]
+    assert "humedad" in r["main_action"]
+
+
+def test_no_forecast_action_asks_to_check_again():
+    r = run(wx([3] * 7, available=False, frost_days=3))
+    assert r["key_factor"]["id"] == "helada" and "no hay pronóstico" in r["main_action"]
+    assert "Lluvia próxima (7 días)" in r["missing_data"]
+    assert r["confidence_explanation"].startswith("Baja: no hay pronóstico")
+
+
+def test_confidence_explanation_says_it_is_not_a_probability():
+    for r in (run(wx([3] * 7)), run(wx([3] * 7, mode="simulado"))):
+        assert "no es la probabilidad" in r["confidence_explanation"]
+    assert "simulados" in run(wx([3] * 7, mode="simulado"))["confidence_explanation"]
+    assert "no están validadas" in run(wx([3] * 7))["confidence_explanation"]
+
+
+def test_no_rules_crop_has_action_and_no_key_factor():
+    r = run(wx([3] * 7), crop="haba")
+    assert r["key_factor"] is None and "técnico" in r["main_action"]

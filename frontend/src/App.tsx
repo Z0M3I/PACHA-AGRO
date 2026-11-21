@@ -22,7 +22,7 @@ function Page({ parts }: { parts: string[] }) {
   const [a, b] = parts
   switch (a) {
     case undefined: return <Home />
-    case 'sembrar': return <Sow />
+    case 'sembrar': return <Sow key={b ?? 'form'} demo={b === 'demo'} />
     case 'clima': return <Weather />
     case 'comunidad': return b && /^\d+$/.test(b) ? <CommunityDetail id={Number(b)} /> : <CommunityHome />
     case 'whatsapp': return <WhatsApp />

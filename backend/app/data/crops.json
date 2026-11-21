@@ -15,6 +15,7 @@
     "temperatura": 0.10
   },
   "critical_criteria": ["calendario", "helada", "humedad"],
+  "key_factor_priority": ["helada", "humedad", "calendario", "lluvia", "temperatura", "tormenta"],
   "aggregation": {
     "green_min_score": 0.80,
     "_explicacion": "verde=1, amarillo=0.5, rojo=0. Si un criterio crítico es rojo el resultado es rojo; si un criterio crítico no tiene datos el resultado es 'información insuficiente'; si el puntaje ponderado es >= green_min_score y ningún criterio crítico está en amarillo, el resultado es verde; en otro caso amarillo."

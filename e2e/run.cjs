@@ -55,12 +55,60 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     const tap = async (l) => { await l.click(); taps++ }
     await tap(p.getByRole('link', { name: /Cuándo puedo sembrar/ }).first())
     for (const t of [/^Oruro$/, /Challapata/, /Quinua/, /Pandela/, /Sí, está húmedo/, /Depende de la lluvia/]) await tap(btn(p, t))
-    await p.waitForSelector('text=¿Por qué?')
+    await p.getByTestId('main-action').waitFor()
     const status = await p.locator('section[aria-live]').first().innerText()
     assert(/favorables|precaución|desfavorables|insuficiente/.test(status), 'sin semáforo')
     assert(await p.locator('text=Fuente:').count() > 0, 'no muestra fuentes')
+    assert(await p.getByTestId('sim-badge').count() === 0, 'consulta real no debe tener la etiqueta "Caso simulado"')
+    const msg = decodeURIComponent((await p.getByTestId('share-whatsapp').getAttribute('href')).split('text=')[1])
+    assert(msg.includes('Quinua en Challapata') && msg.includes('Orientación experimental'), 'mensaje incompleto: ' + msg)
+    assert(!msg.includes('Caso simulado'), 'mensaje real no debe decir "Caso simulado"')
     await p.screenshot({ path: `${OUT}/siembra-resultado.png`, fullPage: true })
     return `${taps} toques, ${(Date.now() - t0) / 1000}s automatizado; resultado: ${status.split('\n').find(x => x.trim().length > 3)}`
+  })
+
+  await test('Demo: «Probar con quinua en Challapata» sin cuenta ni formulario, etiquetado como simulado', async () => {
+    const p = await newPage()
+    await p.goto(BASE)
+    const link = p.getByTestId('demo-case')
+    assert((await link.innerText()).includes('Caso simulado'), 'el acceso no dice "Caso simulado"')
+    await link.click()
+    await p.getByTestId('main-action').waitFor()
+    assert(p.url().endsWith('#/sembrar/demo'), 'ruta inesperada ' + p.url())
+    assert(await p.getByTestId('sim-badge').isVisible(), 'falta la etiqueta "Caso simulado" en el resultado')
+    const head = (await p.locator('main').innerText()).toLowerCase()  // innerText aplica text-transform
+    for (const t of ['Quinua en Challapata', 'Pandela', 'Caso simulado', 'Orientación experimental', 'Lo que más pesa', 'Qué hacer ahora'])
+      assert(head.includes(t.toLowerCase()), `falta "${t}" en el resultado`)
+    // En 360 px: la acción principal está en la primera pantalla y antes de la lista de criterios
+    const act = await p.getByTestId('main-action').boundingBox()
+    const list = await p.getByRole('heading', { name: 'Todos los factores' }).boundingBox()
+    const navTop = (await p.locator('nav[aria-label="Navegación principal"]').boundingBox()).y
+    assert(act.y + act.height <= navTop, `acción principal fuera de la primera pantalla (${act.y + act.height} > ${navTop})`)
+    assert(act.y < list.y, 'la acción principal no aparece antes de los criterios')
+    const msg = decodeURIComponent((await p.getByTestId('share-whatsapp').getAttribute('href')).split('text=')[1])
+    for (const t of ['Quinua en Challapata', 'Resultado:', 'Caso simulado', 'Orientación experimental'])
+      assert(msg.includes(t), `mensaje sin "${t}": ${msg}`)
+    await p.getByText('Ver el mensaje que se enviará').click()
+    assert((await p.getByTestId('share-preview').innerText()) === msg, 'la vista previa no coincide con el mensaje enviado')
+    await p.screenshot({ path: `${OUT}/demo-challapata-360.png` })
+    // Reproducible: dos consultas seguidas dan el mismo resultado
+    const r1 = await p.evaluate(() => fetch('/api/recommendations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ municipality_id: 'or-challapata', crop: 'quinua', variety: 'Pandela', soil_moisture: 'si', irrigation: 'secano', mode: 'simulado' }) }).then(r => r.json()))
+    const r2 = await p.evaluate(() => fetch('/api/recommendations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ municipality_id: 'or-challapata', crop: 'quinua', variety: 'Pandela', soil_moisture: 'si', irrigation: 'secano', mode: 'simulado' }) }).then(r => r.json()))
+    assert(r1.status === r2.status && r1.key_factor.id === r2.key_factor.id && r1.main_action === r2.main_action, 'resultado no reproducible')
+    // Desde la demo se puede pasar a datos reales con las mismas respuestas
+    await btn(p, /Consultar con datos reales/).click()
+    await p.getByTestId('main-action').waitFor()
+    assert(await p.getByTestId('sim-badge').count() === 0, 'tras pasar a datos reales sigue la etiqueta "Caso simulado"')
+    const realMsg = decodeURIComponent((await p.getByTestId('share-whatsapp').getAttribute('href')).split('text=')[1])
+    assert(!realMsg.includes('Caso simulado') && realMsg.includes('Orientación experimental'), 'mensaje real incorrecto')
+    return `${r1.status} · factor: ${r1.key_factor.label} · acción: ${r1.main_action}`
+  })
+
+  await test('Demo: el caso simulado no cambia la ubicación guardada', async () => {
+    const p = await newPage()
+    await p.addInitScript(() => { if (!sessionStorage.getItem('x')) { localStorage.setItem('agb_municipality', 'lp-el-alto'); sessionStorage.setItem('x', '1') } })
+    await p.goto(`${BASE}/#/sembrar/demo`); await p.getByTestId('main-action').waitFor()
+    assert(await p.evaluate(() => localStorage.getItem('agb_municipality')) === 'lp-el-alto', 'cambió la ubicación')
   })
 
   await test('Siembra: cultivo sin reglas muestra "Información insuficiente" sin recomendar', async () => {
@@ -68,7 +116,8 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await p.goto(`${BASE}/#/sembrar`)
     for (const t of [/^Oruro$/, /Challapata/, /Haba/, /Usnayo/, /Sí, está húmedo/, /Tengo riego/]) await btn(p, t).click()
     await p.waitForSelector('text=Información insuficiente')
-    assert(await p.locator('text=¿Por qué?').count() === 0, 'no debería mostrar criterios')
+    assert(await p.locator('text=Todos los factores').count() === 0, 'no debería mostrar criterios')
+    assert(await p.locator('text=Faltan datos').count() === 1, 'debe decir que faltan datos')
   })
 
   await test('Clima: sin pronóstico se explica el problema y se ofrece demostración SIMULADA', async () => {
@@ -82,7 +131,7 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await p.goto(`${BASE}/#/clima`)
     await p.waitForSelector('text=No hay pronóstico disponible')
     await btn(p, /Ver demostración/).click()
-    await p.waitForSelector('text=DEMOSTRACIÓN')
+    await btn(p, /Volver a datos reales/).waitFor()  // solo existe en modo simulado (evita carrera con el aviso previo)
     assert(await p.locator('text=SIMULADO').count() > 0, 'falta etiqueta SIMULADO')
     await p.screenshot({ path: `${OUT}/clima-simulado.png`, fullPage: true })
   })
@@ -142,6 +191,7 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
   await test('WhatsApp: simulador responde y el botón Enviar es visible', async () => {
     const p = await newPage()
     await p.goto(`${BASE}/#/whatsapp`)
+    await p.locator('#chat').waitFor()  // la pantalla se carga de forma diferida
     assert(await p.locator('text=no está conectado').count() > 0, 'no avisa que es simulación')
     await p.fill('#chat', '¿Cuándo puedo sembrar quinua en Challapata?')
     const send = btn(p, /^Enviar$/); const b = await send.boundingBox()

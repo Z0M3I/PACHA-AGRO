@@ -33,6 +33,13 @@ export default function Home() {
         ))}
       </nav>
 
+      <a href="#/sembrar/demo" data-testid="demo-case"
+        className="mt-3 flex min-h-14 items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-tierra bg-tierra-100 px-4 py-2.5 text-tierra">
+        <span><span className="block text-lg font-bold leading-tight">▶ Probar con quinua en Challapata</span>
+          <span className="text-sm">Ejemplo listo, sin cuenta ni formulario</span></span>
+        <span className="shrink-0 rounded-full bg-papel px-2.5 py-0.5 text-sm font-bold">🧪 Caso simulado</span>
+      </a>
+
       <QuickWeather />
 
       <a href="#/aprender" className="mt-4 flex items-center gap-4 rounded-2xl border border-linea bg-papel p-4">
