@@ -1,0 +1,33 @@
+"""Límite de solicitudes en memoria (suficiente para un prototipo con un solo proceso)."""
+import time
+from collections import defaultdict, deque
+
+from fastapi import HTTPException, Request
+
+
+class RateLimiter:
+    def __init__(self, max_calls: int, per_seconds: float):
+        self.max_calls = max_calls
+        self.per_seconds = per_seconds
+        self._hits: dict[str, deque] = defaultdict(deque)
+
+    def check(self, key: str) -> None:
+        now = time.monotonic()
+        q = self._hits[key]
+        while q and now - q[0] > self.per_seconds:
+            q.popleft()
+        if len(q) >= self.max_calls:
+            raise HTTPException(status_code=429, detail="Demasiados intentos. Espere un momento y vuelva a intentar.")
+        q.append(now)
+
+    def reset(self) -> None:
+        self._hits.clear()
+
+
+login_limiter = RateLimiter(max_calls=8, per_seconds=300)
+register_limiter = RateLimiter(max_calls=10, per_seconds=3600)
+chat_limiter = RateLimiter(max_calls=40, per_seconds=60)
+
+
+def client_key(request: Request) -> str:
+    return request.client.host if request.client else "unknown"

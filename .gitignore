@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.db
+.env
+# Node
+node_modules/
+frontend/dist/
+# Pruebas / capturas temporales
+e2e/output/
+frontend/tsconfig.tsbuildinfo

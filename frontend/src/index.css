@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bosque: #1e4a2c;
+  --color-bosque-800: #163a22;
+  --color-bosque-600: #2c6640;
+  --color-brote: #dce7d1;
+  --color-brote-50: #eef3e7;
+  --color-crema: #faf6ee;
+  --color-papel: #fffdf8;
+  --color-tierra: #7a4e2d;
+  --color-tierra-100: #efe3d3;
+  --color-ocre: #b87a2a;
+  --color-sol: #f3d98b;
+  --color-sol-50: #fbf0c9;
+  --color-sol-ink: #5f4500;
+  --color-rojo: #a63a2b;
+  --color-rojo-50: #f7dcd5;
+  --color-tinta: #1f2620;
+  --color-musgo: #4f5a50;
+  --color-linea: #ddd5c5;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, sans-serif;
+  --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+}
+
+html { font-size: 112.5%; -webkit-text-size-adjust: 100%; }
+body { background: var(--color-crema); color: var(--color-tinta); font-family: var(--font-sans); line-height: 1.45; }
+*:focus-visible { outline: 3px solid var(--color-ocre); outline-offset: 2px; border-radius: 6px; }
+
+/* Franja inspirada en los tejidos andinos (aguayo): bandas planas, sin degradado. */
+.aguayo {
+  height: 8px;
+  background: repeating-linear-gradient(90deg,
+    #7a4e2d 0 18px, #b87a2a 18px 26px, #f3d98b 26px 32px, #2c6640 32px 50px, #a63a2b 50px 56px, #dce7d1 56px 62px);
+}
+.pb-nav { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
