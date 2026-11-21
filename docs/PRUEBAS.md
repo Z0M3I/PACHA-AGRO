@@ -4,9 +4,9 @@ Ejecutadas el 21-11-2026. Todas reproducibles sin conexión a Internet (backend 
 
 | Suite | Comando | Resultado |
 |---|---|---|
-| Backend (pytest) | `cd backend && .venv/bin/python -m pytest` | **51/51** aprobadas |
-| Frontend unitarias (vitest) | `cd frontend && npm test` | **3/3** aprobadas |
-| Extremo a extremo (Playwright, Chromium, celular 360×740) | `node e2e/run.cjs http://localhost:8000` | **13/13** aprobadas |
+| Backend (pytest) | `cd backend && .venv/bin/python -m pytest` | **61/61** aprobadas |
+| Frontend unitarias (vitest) | `cd frontend && npm test` | **7/7** aprobadas |
+| Extremo a extremo (Playwright, Chromium, celular 360×740) | `node e2e/run.cjs http://localhost:8000` | **15/15** aprobadas (servidor recién iniciado) |
 | Tipos TypeScript + compilación | `cd frontend && npm run build` | Sin errores |
 
 ## Casos de prueba por área
@@ -16,6 +16,11 @@ Ejecutadas el 21-11-2026. Todas reproducibles sin conexión a Internet (backend 
 | Navegación | Las 4 acciones principales se ven sin desplazarse en 360×740 | Visibles sobre la barra inferior | e2e #1 |
 | Navegación | Sin desplazamiento horizontal en 9 pantallas a 320 px | `scrollWidth ≤ 320` | e2e #12 |
 | Recomendación | Consulta completa sin registro | 7 toques hasta el resultado, con semáforo y fuentes | e2e #2 |
+| Demo | «Probar con quinua en Challapata» desde el inicio, sin cuenta ni formulario | Resultado con etiqueta «Caso simulado», reproducible, sin cambiar la ubicación guardada | e2e |
+| Demo | En 360×740 la acción principal está en la primera pantalla y antes de «Todos los factores» | Sí | e2e |
+| Demo | Desde el caso simulado se pasa a datos reales | Desaparece la etiqueta de simulación | e2e |
+| Compartir | Mensaje con cultivo, municipio, resultado, «Orientación experimental» y, si aplica, «Caso simulado»; vista previa = mensaje enviado | Ambos modos verificados | `share.test.ts`, e2e |
+| Recomendación | Factor decisivo: rojo > amarillo, crítico antes que no crítico, sin datos no crítico no decide; acción principal por factor; explicación de confianza | Sí | `test_engine` (10 casos) |
 | Recomendación | Heladas −4 °C / −1 °C / sin helada | 🔴 / 🟡 / 🟢 con explicación que cita la temperatura | `test_engine` |
 | Recomendación | Suelo seco y secano / seco con riego | 🔴 / 🟡 | `test_engine` |
 | Recomendación | "No sé" la humedad → usa modelo; sin modelo → ⚪ | Etiqueta "estimación" / insuficiente | `test_engine` |
@@ -49,6 +54,8 @@ Ejecutadas el 21-11-2026. Todas reproducibles sin conexión a Internet (backend 
 | Rendimiento | Red emulada ≈400 kbps + 400 ms latencia | Acciones de inicio visibles en **≈2.1 s** | e2e #13 |
 | Rendimiento | Peso de la primera carga | ≈62 KB comprimidos (JS 56 KB + CSS 5 KB); mapa (44 KB) solo bajo demanda | `npm run build` |
 | Accesibilidad | Contraste de todos los pares texto/fondo de la paleta | ≥ 4.95:1 (WCAG AA) | cálculo en revisión |
+
+> Nota: los límites de seguridad (8 inicios de sesión cada 5 min por cuenta e IP, 5 reportes por hora) viven en memoria. Si se ejecuta la suite e2e varias veces seguidas contra el mismo servidor, las pruebas que inician sesión pueden recibir `429`: reinicie el servidor antes de cada ejecución.
 
 ## Lo que NO se ha validado
 

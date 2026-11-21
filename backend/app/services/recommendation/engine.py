@@ -56,6 +56,7 @@ class Criterion:
     data_kind: str  # pronostico | estimacion | climatologia | agricultor | comunidad | calendario | simulado | sin_datos
     source: str | None = None
     value: str | None = None
+    hint: str | None = None  # matiz para elegir la acción principal (p. ej. calendario temprano/tarde)
 
 
 def _in_window(today: date, start: str, end: str) -> bool:
@@ -63,6 +64,18 @@ def _in_window(today: date, start: str, end: str) -> bool:
     if start <= end:
         return start <= md <= end
     return md >= start or md <= end  # ventana que cruza el año (ej. nov-ene)
+
+
+_DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"]
+
+
+def _day(iso: str) -> str:
+    """'2026-11-23' -> 'lun 23 nov' (más fácil de leer que la fecha ISO)."""
+    try:
+        d = date.fromisoformat(iso)
+    except ValueError:
+        return iso
+    return f"{_DIAS[d.weekday()]} {d.day} {_fmt(d.strftime('%m-%d')).split()[1]}"
 
 
 def _fmt(md: str) -> str:
@@ -89,7 +102,10 @@ def evaluate(cfg: dict, municipality: dict, answers: Answers, wx: WeatherView, t
         return {**base, "status": GRAY, "headline": HEADLINES[GRAY], "criteria": [], "score": None, "confidence": "ninguna",
                 "summary": f"Todavía no tenemos reglas revisadas para {crop['name'].lower()} en la región de {region}. "
                            "No damos una recomendación para no confundirle. Consulte a un técnico agrícola de su zona.",
-                "actions": ["Consulte a su técnico o promotor agrícola.", "Revise el pronóstico de heladas en la sección Clima."]}
+                "actions": ["Consulte a su técnico o promotor agrícola.", "Revise el pronóstico de heladas en la sección Clima."],
+                "key_factor": None, "main_action": "Consulte a su técnico o promotor agrícola antes de sembrar.",
+                "missing_data": ["reglas para este cultivo en esta región"],
+                "confidence_explanation": "Sin orientación: no hay reglas cargadas para este cultivo en esta región."}
 
     th = crop["thresholds"]
     sim = wx.mode == "simulado"
@@ -120,12 +136,87 @@ def evaluate(cfg: dict, municipality: dict, answers: Answers, wx: WeatherView, t
         status = YELLOW
 
     confidence = "baja" if sim or not wx.forecast_available else ("media" if scenario == "demo" else "media-alta")
+    key = key_factor(status, criteria, weights, critical, cfg.get("key_factor_priority", []))
     return {
         **base, "status": status, "headline": HEADLINES[status], "score": score, "confidence": confidence,
         "criteria": [asdict(c) for c in criteria],
         "summary": _summary(status, criteria, crop["name"], critical),
         "actions": _actions(status, criteria),
+        "key_factor": asdict(key) if key else None,
+        "main_action": main_action(status, key),
+        "missing_data": [c.label for c in criteria if c.status == GRAY],
+        "confidence_explanation": _confidence_text(confidence, sim, wx.forecast_available, scenario),
     }
+
+
+_SEVERITY = {RED: 2, YELLOW: 1}
+
+
+def key_factor(status: str, criteria: list[Criterion], weights: dict, critical: set, priority: list[str]) -> Criterion | None:
+    """Factor que más pesa en el resultado.
+
+    * Información insuficiente: el criterio crítico sin datos.
+    * Rojo / amarillo: el criterio más desfavorable (rojo > amarillo); a igual estado gana el criterio
+      crítico, luego el de mayor peso y luego el orden de `key_factor_priority`. Los criterios no críticos
+      sin datos no deciden el resultado (se informan en `missing_data`).
+    * Verde: el criterio crítico de mayor peso (todos a favor).
+    Desempates documentados en docs/ALGORITMO.md."""
+    def rank(c: Criterion):
+        prio = priority.index(c.id) if c.id in priority else len(priority)
+        return (-(c.id in critical), -weights.get(c.id, 0), prio)
+
+    if status == GRAY:
+        pool = [c for c in criteria if c.id in critical and c.status == GRAY]
+    elif status == GREEN:
+        pool = [c for c in criteria if c.id in critical]
+    else:
+        scored = [c for c in criteria if c.status in (RED, YELLOW)]
+        worst = max((_SEVERITY[c.status] for c in scored), default=0)
+        pool = [c for c in scored if _SEVERITY[c.status] == worst]
+    return min(pool, key=rank) if pool else None
+
+
+_ACTION = {
+    ("helada", RED): "Espere: no siembre hasta que pasen los días con helada fuerte.",
+    ("helada", YELLOW): "Siembre después de los días con riesgo de helada y revise la temperatura mínima cada mañana.",
+    ("helada", GRAY): "Vuelva a consultar más tarde: sin pronóstico no podemos descartar heladas.",
+    ("humedad", RED): "Espere una lluvia o riegue antes de sembrar: el suelo está seco.",
+    ("humedad", YELLOW): "Revise la humedad con la prueba del puño antes de sembrar.",
+    ("humedad", GRAY): "Revise la humedad de su terreno con la mano y vuelva a consultar.",
+    ("calendario", RED): "Consulte a su técnico: estamos fuera de la época habitual de siembra.",
+    ("calendario", GRAY): "Consulte a su técnico: no tenemos el calendario de siembra de su zona.",
+    ("lluvia", RED): "Prepare el terreno y espere una lluvia antes de sembrar.",
+    ("lluvia", YELLOW): "Prepare el terreno y siembre cuando haya más humedad.",
+    ("tormenta", YELLOW): "Esté atento a tormentas y avise a su comunidad si cae granizo.",
+    ("temperatura", YELLOW): "La semilla puede tardar en nacer; puede esperar días más templados.",
+}
+
+
+def main_action(status: str, key: Criterion | None) -> str:
+    """Una sola acción, en lenguaje sencillo, ligada al factor decisivo."""
+    if status == GREEN or key is None:
+        return "Puede preparar la siembra. Revise el pronóstico cada día y converse con su comunidad."
+    if key.id == "helada" and key.data_kind == "climatologia":
+        return "Vuelva a consultar antes de sembrar: hoy no hay pronóstico de heladas."
+    if key.id == "calendario" and key.status == YELLOW:
+        return ("Puede esperar unos días: la mejor época de siembra aún no empieza." if key.hint == "temprano"
+                else "Si va a sembrar, hágalo pronto: la mejor época ya pasó.")
+    if key.id == "lluvia" and key.hint == "lluvia_fuerte":
+        return "Evite sembrar justo antes de la lluvia fuerte pronosticada."
+    return _ACTION.get((key.id, key.status), "Faltan datos: vuelva a consultar más tarde o pregunte a su técnico.")
+
+
+def _confidence_text(confidence: str, sim: bool, forecast: bool, scenario: str) -> str:
+    base = "La confianza indica qué tan completos y reales son los datos usados; no es la probabilidad de una buena cosecha."
+    if sim:
+        why = "Baja: los datos del clima son simulados y solo sirven para demostrar."
+    elif not forecast:
+        why = "Baja: no hay pronóstico; se usó el historial del mes."
+    elif scenario == "demo":
+        why = "Media: hay pronóstico, pero las reglas de este cultivo son de demostración."
+    else:
+        why = "Media-alta: hay pronóstico real, pero las reglas aún no están validadas por agrónomos."
+    return f"{why} {base}"
 
 
 def _calendar(cfg, crop_id, m, today) -> Criterion:
@@ -138,7 +229,12 @@ def _calendar(cfg, crop_id, m, today) -> Criterion:
     if _in_window(today, *o):
         st, ex = GREEN, f"Estamos dentro de la época más usada para sembrar ({rango})."
     elif _in_window(today, *w):
-        st, ex = YELLOW, f"Estamos en la época posible ({_fmt(w[0])} – {_fmt(w[1])}), pero fuera de la mejor época ({rango})."
+        early = _in_window(today, w[0], o[0])
+        st = YELLOW
+        ex = (f"Estamos en la época posible ({_fmt(w[0])} – {_fmt(w[1])}), pero "
+              + (f"antes de la mejor época ({rango})." if early else f"la mejor época ({rango}) ya pasó."))
+        return Criterion("calendario", "Época de siembra", st, ex, "calendario", cal["source"], today.isoformat(),
+                         "temprano" if early else "tarde")
     else:
         st, ex = RED, f"Estamos fuera de la época de siembra habitual ({_fmt(w[0])} – {_fmt(w[1])})."
     return Criterion("calendario", "Época de siembra", st, ex, "calendario", cal["source"], today.isoformat())
@@ -151,9 +247,9 @@ def _frost(th, wx: WeatherView, fk) -> Criterion:
         if tmin_day:
             t = tmin_day["tmin"]
             if t <= th["frost_red_c"]:
-                st, ex = RED, f"Se pronostica una mínima de {t:.0f} °C el {tmin_day['date']}. Es una helada fuerte para plantas recién nacidas."
+                st, ex = RED, f"Se pronostica una mínima de {t:.0f} °C el {_day(tmin_day['date'])}. Es una helada fuerte para plantas recién nacidas."
             elif t <= th["frost_yellow_c"]:
-                st, ex = YELLOW, f"Se pronostica una mínima de {t:.0f} °C el {tmin_day['date']}. Puede haber helada leve; a ras del suelo puede hacer más frío."
+                st, ex = YELLOW, f"Se pronostica una mínima de {t:.0f} °C el {_day(tmin_day['date'])}. Puede haber helada leve; a ras del suelo puede hacer más frío."
             else:
                 st, ex = GREEN, f"La mínima pronosticada es {t:.0f} °C. No se espera helada en los próximos días."
             return Criterion("helada", label, st, ex, fk, wx.forecast_source, f"{t} °C")
@@ -202,7 +298,7 @@ def _rain(th, a: Answers, wx: WeatherView, fk) -> Criterion:
     vals = [d.get("precip_mm") or 0.0 for d in wx.daily]
     total, peak = sum(vals), max(vals)
     if peak >= th["heavy_rain_day_mm"]:
-        return Criterion("lluvia", label, YELLOW, f"Se pronostica un día con lluvia fuerte ({peak:.0f} mm). Puede endurecer el suelo o arrastrar la semilla.", fk, wx.forecast_source, f"{total:.0f} mm")
+        return Criterion("lluvia", label, YELLOW, f"Se pronostica un día con lluvia fuerte ({peak:.0f} mm). Puede endurecer el suelo o arrastrar la semilla.", fk, wx.forecast_source, f"{total:.0f} mm", "lluvia_fuerte")
     if a.irrigation == "riego":
         return Criterion("lluvia", label, GREEN, f"Se esperan {total:.0f} mm. Con riego, la lluvia no es una limitación.", fk, wx.forecast_source, f"{total:.0f} mm")
     if total >= th["rain_ok_7d_mm"]:
@@ -223,7 +319,7 @@ def _storm(wx: WeatherView, fk) -> Criterion:
         return Criterion("tormenta", label, GRAY, "No hay pronóstico de tormentas disponible.", "sin_datos")
     storms = [d["date"] for d in wx.daily if d.get("storm")]
     if storms:
-        return Criterion("tormenta", label, YELLOW, f"Se pronostican tormentas ({', '.join(storms)}). Puede caer granizo.", fk, wx.forecast_source)
+        return Criterion("tormenta", label, YELLOW, f"Se pronostican tormentas ({', '.join(_day(x) for x in storms)}). Puede caer granizo.", fk, wx.forecast_source)
     return Criterion("tormenta", label, GREEN, "No se pronostican tormentas. (El granizo puede ser muy local y no siempre se pronostica.)", fk, wx.forecast_source)
 
 

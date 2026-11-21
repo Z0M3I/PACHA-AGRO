@@ -15,9 +15,10 @@ Prototipo funcional para hackatón universitaria. Integra los tracks **Comunicac
 | Función | Estado |
 |---|---|
 | Página principal con 4 acciones visibles sin desplazarse (probado en 360×740) | ✅ |
+| Caso de demostración «Probar con quinua en Challapata» (sin cuenta, datos simulados) | ✅ |
 | Selección de departamento → municipio → cultivo (9 departamentos, 32 municipios) | ✅ |
 | Clima: pronóstico **Open-Meteo**, historial y climatología **NASA POWER**, riesgo de helada, tormentas | ✅ datos reales (con caché y respaldo) |
-| Recomendación de siembra explicable 🟢🟡🔴⚪ | ✅ **Quinua en el Altiplano** (Oruro, Potosí, La Paz) · 🧪 Papa y Maíz en modo *demostración* · ⚪ Haba y Cebada sin reglas |
+| Recomendación de siembra explicable 🟢🟡🔴⚪ con factor decisivo y acción principal | ✅ **Quinua en el Altiplano** (Oruro, Potosí, La Paz) · 🧪 Papa y Maíz en modo *demostración* · ⚪ Haba y Cebada sin reglas |
 | Registro e inicio de sesión de agricultores (celular + clave) | ✅ |
 | Comunidades con aprobación del administrador; solicitudes de unión aprobadas por el representante | ✅ |
 | Reuniones, confirmación de asistencia, avisos, reportes de helada/granizo, historial | ✅ |
@@ -66,7 +67,22 @@ cd frontend && npm run dev
 | Agricultora | 70000002 | demo1234 |
 | Administrador | el de `ADMIN_PHONE` | el de `ADMIN_PASSWORD` |
 
-### Guion de demostración para el jurado (≈4 min)
+### Demo de 2 minutos: productora de quinua en Challapata
+
+Caso: una productora de Challapata (Oruro) quiere saber si es buen momento para sembrar quinua y avisar a su comunidad. No hace falta cuenta ni internet hacia los proveedores de clima: el caso usa **datos simulados** y lo dice en pantalla.
+
+1. **Abrir el caso (≈20 s).** En el Inicio, baje un poco y toque **«▶ Probar con quinua en Challapata»** (etiqueta *🧪 Caso simulado*). Se abre el resultado ya calculado para Oruro → Challapata → Quinua Pandela → suelo húmedo → depende de la lluvia. También se abre directo con `/#/sembrar/demo`.
+2. **Explicar el factor principal (≈60 s).** Sin desplazarse, la primera pantalla muestra:
+   - el **estado** con color, emoji y texto (p. ej. 🔴 *Condiciones desfavorables*);
+   - **Lo que más pesa**: el criterio decisivo y por qué (p. ej. *Riesgo de helada: mínima de −6 °C el lun 23 nov*);
+   - **Qué hacer ahora**: una sola acción sencilla (p. ej. *Espere: no siembre hasta que pasen los días con helada fuerte*).
+   Más abajo: *Confianza · ¿qué significa?* (explica que no es una probabilidad), la lista **Todos los factores** con su fuente y tipo de dato, y la aclaración de que las reglas son **experimentales y pendientes de validación agronómica**.
+3. **Mostrar el mensaje listo para compartir (≈30 s).** Toque **«Ver el mensaje que se enviará»**: incluye cultivo, municipio, resultado, factor principal, acción, **«Caso simulado»** y **«Orientación experimental»**. **«💬 Compartir por WhatsApp»** abre WhatsApp para que *la persona* elija a quién enviarlo; el asistente automático de AgroBolivia en WhatsApp sigue siendo un **simulador**.
+4. **Cierre (≈10 s).** «Consultar con datos reales» repite la misma consulta con Open-Meteo y NASA POWER; si el pronóstico no está disponible, la app lo dice y baja la confianza.
+
+> El resultado simulado es reproducible durante el día (no depende de la red), pero cambia con la fecha: las fechas del pronóstico simulado y el calendario de siembra avanzan. Ensaye la demo el mismo día de la presentación.
+
+### Guion completo (≈4 min)
 1. **Inicio → ¿Cuándo puedo sembrar?** Oruro → Challapata → Quinua → Pandela → Sí, húmedo → Depende de la lluvia. Resultado en 7 toques, con el *porqué* de cada criterio y su fuente.
 2. **Clima**: pronóstico real, riesgo de helada, historial NASA POWER, enlace a SENAMHI. Si el pronóstico no responde, se ve el mensaje claro y el botón "Ver demostración" (etiquetado SIMULADO).
 3. **Comunidad** (representante 70000001): convocar reunión → "Recordar" (genera recordatorios *simulados* solo para quienes aceptaron WhatsApp).
@@ -94,7 +110,7 @@ cd frontend && npm test
 node e2e/run.cjs http://localhost:8000
 ```
 
-Resultados actuales: **51/51** backend, **3/3** unitarias frontend, **13/13** extremo a extremo. Detalle en [docs/PRUEBAS.md](docs/PRUEBAS.md).
+Resultados actuales: **61/61** backend, **7/7** unitarias frontend, **15/15** extremo a extremo. Detalle en [docs/PRUEBAS.md](docs/PRUEBAS.md).
 
 ## Documentación
 
