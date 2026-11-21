@@ -12,9 +12,9 @@ router = APIRouter(prefix="/api", tags=["recomendaciones"])
 
 @router.post("/recommendations")
 def create_recommendation(body: RecommendationIn, db: Session = Depends(get_db)):
-    m = get_municipality(body.municipality_id)
-    if not m:
-        raise HTTPException(404, "Municipio no encontrado.")
+    from app.routers.catalog import resolve_location
+
+    m = resolve_location(body.municipality_id, body.lat, body.lon)
     crop = crops_config()["crops"].get(body.crop)
     if not crop:
         raise HTTPException(422, "Cultivo no disponible.")

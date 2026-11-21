@@ -59,8 +59,18 @@ class UserOut(BaseModel):
     whatsapp_opt_in: bool
     default_municipality_id: str | None
     crops: list[str] = []
+    must_change_password: bool = False
 
     model_config = {"from_attributes": True}
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class DeleteAccountIn(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
 
 
 class ProfileUpdate(BaseModel):
@@ -129,7 +139,9 @@ class RoleIn(BaseModel):
 
 
 class RecommendationIn(BaseModel):
-    municipality_id: str
+    municipality_id: str | None = None
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lon: float | None = Field(default=None, ge=-180, le=180)
     crop: str
     variety: str | None = Field(default=None, max_length=80)
     soil_moisture: Literal["si", "poca", "no", "no_se"]

@@ -19,9 +19,15 @@ def optional_user(request: Request, db: Session = Depends(get_db)) -> User | Non
     return user if user and user.is_active and (get_settings().seed_demo or not user.is_demo) else None
 
 
-def current_user(user: User | None = Depends(optional_user)) -> User:
+_ALLOWED_WITH_TEMP_PASSWORD = {"/api/auth/me", "/api/auth/password"}
+
+
+def current_user(request: Request, user: User | None = Depends(optional_user)) -> User:
     if user is None:
         raise HTTPException(status_code=401, detail="Necesita ingresar con su cuenta.")
+    # Con clave temporal (dada por un administrador) solo se puede ver el perfil y cambiar la clave.
+    if user.must_change_password and request.url.path not in _ALLOWED_WITH_TEMP_PASSWORD:
+        raise HTTPException(status_code=403, detail="Debe cambiar su clave temporal antes de continuar.")
     return user
 
 

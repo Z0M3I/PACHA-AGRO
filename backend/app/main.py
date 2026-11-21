@@ -8,13 +8,14 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.core.config import get_settings
+from app.core.config import check_production, get_settings
 from app import db as dbmod
 from app.routers import admin, auth, catalog, communities, education, notices, recommendations, whatsapp
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    check_production()
     dbmod.init_db()
     yield
 
@@ -32,6 +33,9 @@ async def security_headers(request: Request, call_next):
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["X-Frame-Options"] = "DENY"
     resp.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    resp.headers["Permissions-Policy"] = "geolocation=(self), camera=(), microphone=()"
+    if s.environment == "production":
+        resp.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return resp
 
 
@@ -52,7 +56,21 @@ for r in (auth.router, catalog.router, recommendations.router, communities.route
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    """Estado para Render/monitoreo: responde 503 si la base de datos no está disponible."""
+    from sqlalchemy import text
+
+    from app.services.whatsapp.channels import get_channel
+
+    try:
+        with dbmod.engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception:  # noqa: BLE001
+        db_ok = False
+    body = {"status": "ok" if db_ok else "degradado", "database": db_ok, "environment": s.environment,
+            "whatsapp": get_channel().name,
+            "weather": {"official_source": bool(s.official_weather_url), "open_meteo_paid_key": bool(s.open_meteo_api_key)}}
+    return body if db_ok else JSONResponse(status_code=503, content=body)
 
 
 # Sirve el frontend compilado (opcional): un solo proceso para la demostración.

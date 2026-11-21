@@ -3,6 +3,10 @@ import { api, getToken, setToken } from './api'
 import type { Department, Municipality, User } from './types'
 
 const LOC_KEY = 'agb_municipality'
+const GPS_KEY = 'agb_gps'
+
+/** Ubicación exacta por GPS. Se guarda solo en este celular; el servidor no la almacena. */
+export interface Gps { lat: number; lon: number; municipalityId: string; distanceKm: number; far: boolean }
 const read = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
 const write = (k: string, v: string) => { try { localStorage.setItem(k, v) } catch { /* ignorar */ } }
 
@@ -17,6 +21,10 @@ interface Ctx {
   municipalityId: string | null
   setMunicipalityId: (id: string) => void
   findMunicipality: (id: string | null) => (Municipality & { department_id: string; department_name: string }) | null
+  gps: Gps | null
+  setGps: (g: Gps) => void
+  /** Parámetros de ubicación para la API: coordenadas exactas si hay GPS para ese municipio. */
+  locationQuery: (municipalityId: string) => string
 }
 
 const AppCtx = createContext<Ctx | null>(null)
@@ -26,6 +34,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [departments, setDepartments] = useState<Department[] | null>(null)
   const [locationsError, setLocationsError] = useState<string | null>(null)
   const [municipalityId, setMid] = useState<string | null>(read(LOC_KEY))
+  const [gps, setGpsState] = useState<Gps | null>(() => { try { return JSON.parse(read(GPS_KEY) ?? 'null') } catch { return null } })
 
   const loadLocations = useCallback(() => {
     setLocationsError(null)
@@ -49,7 +58,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     refreshUser,
     departments, locationsError, reloadLocations: loadLocations,
     municipalityId,
-    setMunicipalityId: (id) => { setMid(id); write(LOC_KEY, id) },
+    setMunicipalityId: (id) => {
+      setMid(id); write(LOC_KEY, id)
+      if (gps && gps.municipalityId !== id) { setGpsState(null); try { localStorage.removeItem(GPS_KEY) } catch { /* ignorar */ } }
+    },
+    gps,
+    setGps: (g) => { setGpsState(g); write(GPS_KEY, JSON.stringify(g)); setMid(g.municipalityId); write(LOC_KEY, g.municipalityId) },
+    locationQuery: (id) => gps && gps.municipalityId === id
+      ? `lat=${gps.lat.toFixed(4)}&lon=${gps.lon.toFixed(4)}` : `municipality_id=${encodeURIComponent(id)}`,
     findMunicipality: (id) => {
       if (!id || !departments) return null
       for (const d of departments) {
@@ -58,7 +74,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       return null
     },
-  }), [user, departments, locationsError, municipalityId, refreshUser, loadLocations])
+  }), [user, departments, locationsError, municipalityId, gps, refreshUser, loadLocations])
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>
 }

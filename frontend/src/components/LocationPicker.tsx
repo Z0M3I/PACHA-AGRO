@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useApp } from '../lib/store'
+import { GpsButton } from './GpsButton'
 import { ErrorBox, Loading } from './ui'
 
 /** Selección en dos pasos con botones grandes: departamento → municipio. */
@@ -44,16 +45,18 @@ export function OptionButton({ children, onClick, selected }: { children: React.
 
 /** Selector compacto reutilizable (Clima, Perfil). */
 export function LocationSelector({ value, onChange }: { value: string | null; onChange: (id: string) => void }) {
-  const { findMunicipality } = useApp()
+  const { findMunicipality, gps } = useApp()
   const current = findMunicipality(value)
+  const viaGps = gps && current && gps.municipalityId === current.id
   const [open, setOpen] = useState(!current)
   const [dept, setDept] = useState<string | null>(current?.department_id ?? null)
   if (!open && current) {
     return (
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-linea bg-papel px-4 py-3">
         <div>
-          <div className="text-sm text-musgo">📍 Ubicación</div>
-          <div className="text-lg font-bold">{current.name}, {current.department_name}</div>
+          <div className="text-sm text-musgo">📍 {viaGps ? 'Su ubicación (GPS)' : 'Ubicación'}</div>
+          <div className="text-lg font-bold">{viaGps ? `Cerca de ${current.name}` : current.name}, {current.department_name}</div>
+          {viaGps && <div className="text-sm text-musgo">A {gps!.distanceKm.toFixed(0)} km del centro del municipio</div>}
         </div>
         <button className="min-h-12 rounded-xl px-3 font-semibold text-bosque underline underline-offset-4" onClick={() => setOpen(true)}>Cambiar</button>
       </div>
@@ -62,7 +65,10 @@ export function LocationSelector({ value, onChange }: { value: string | null; on
   return (
     <div className="rounded-2xl border-2 border-bosque bg-papel p-4">
       {!dept ? (
-        <><h2 className="mb-3 text-xl font-bold">¿En qué departamento está?</h2><DepartmentList onPick={setDept} /></>
+        <>
+          <div className="mb-4"><GpsButton onLocated={() => setOpen(false)} /></div>
+          <h2 className="mb-3 text-xl font-bold">O elija: ¿en qué departamento está?</h2><DepartmentList onPick={setDept} />
+        </>
       ) : (
         <>
           <div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-bold">¿En qué municipio?</h2>

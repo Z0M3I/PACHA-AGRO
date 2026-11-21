@@ -15,7 +15,9 @@ os.environ.setdefault("DATABASE_URL", "sqlite:////tmp/agrobolivia.db")
 os.environ.setdefault("FRONTEND_DIST", "/nonexistent")  # el frontend lo sirve la CDN de Vercel
 
 from app import db as dbmod  # noqa: E402
+from app.core.config import check_production  # noqa: E402
 from app.main import app  # noqa: E402,F401
 
 # Vercel no siempre ejecuta los eventos de arranque (lifespan): inicializamos al importar.
+check_production()
 dbmod.init_db()

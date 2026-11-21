@@ -81,8 +81,11 @@ export function Profile() {
         <Button variant="secondary" className="mt-3" disabled={busy} onClick={toggle}>{user.whatsapp_opt_in ? 'Dejar de recibir' : 'Aceptar recibir avisos'}</Button>
       </div>
       <CropInterests />
+      <ChangePassword />
+      <a href="#/privacidad" className="block min-h-12 py-3 font-semibold text-bosque underline underline-offset-4">Política de privacidad</a>
       {(user.role === 'admin' || user.role === 'editor') && <a href="#/admin" className="block rounded-xl bg-tierra px-5 py-3 text-center text-lg font-semibold text-white">🛠️ {user.role === 'admin' ? 'Panel de administración' : 'Publicar avisos'}</a>}
       <Button variant="danger" className="w-full" onClick={() => { logout(); go('/') }}>Salir de mi cuenta</Button>
+      {user.role !== 'admin' && <DeleteAccount />}
     </div>
   )
 }
@@ -113,5 +116,61 @@ function CropInterests() {
       </div>
       {saved && <p className="mt-2 font-semibold text-bosque" role="status">✅ Guardado</p>}
     </div>
+  )
+}
+
+
+/** Cambio de clave. Con `forced`, es la pantalla obligatoria tras recibir una clave temporal. */
+export function ChangePassword({ forced = false }: { forced?: boolean }) {
+  const { refreshUser, logout } = useApp()
+  const [f, setF] = useState({ current: '', next: '', repeat: '' })
+  const [err, setErr] = useState<string | null>(null)
+  const [ok, setOk] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const submit = async (e: FormEvent) => {
+    e.preventDefault(); setErr(null); setOk(false)
+    if (f.next.length < 8) { setErr('La clave nueva debe tener al menos 8 letras o números.'); return }
+    if (f.next !== f.repeat) { setErr('Las dos claves nuevas no son iguales.'); return }
+    setBusy(true)
+    try {
+      await api('/api/auth/password', { body: { current_password: f.current, new_password: f.next } })
+      setF({ current: '', next: '', repeat: '' }); setOk(true); await refreshUser()
+    } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
+  }
+  return (
+    <form onSubmit={submit} className="space-y-3 rounded-2xl border border-linea bg-papel p-4" noValidate>
+      {forced ? <>
+        <PageTitle icon="🔑" title="Cree su clave nueva" subtitle="Ingresó con una clave temporal. Por seguridad, elija una clave que solo usted conozca." />
+      </> : <p className="text-lg font-bold">🔑 Cambiar mi clave</p>}
+      <Field label={forced ? 'Clave temporal' : 'Clave actual'}><input className={inputCls} type="password" autoComplete="current-password" value={f.current} onChange={e => setF({ ...f, current: e.target.value })} /></Field>
+      <Field label="Clave nueva (mínimo 8)"><input className={inputCls} type="password" autoComplete="new-password" value={f.next} onChange={e => setF({ ...f, next: e.target.value })} /></Field>
+      <Field label="Repita la clave nueva"><input className={inputCls} type="password" autoComplete="new-password" value={f.repeat} onChange={e => setF({ ...f, repeat: e.target.value })} /></Field>
+      {err && <p role="alert" className="font-semibold text-rojo">⚠️ {err}</p>}
+      {ok && <p role="status" className="font-semibold text-bosque">✅ Clave cambiada.</p>}
+      <Button className="w-full" disabled={busy}>{busy ? 'Guardando…' : 'Guardar clave nueva'}</Button>
+      {forced && <Button type="button" variant="ghost" className="w-full" onClick={() => { logout(); go('/') }}>Salir</Button>}
+    </form>
+  )
+}
+
+/** Eliminar la cuenta (derecho de supresión de datos personales). */
+function DeleteAccount() {
+  const { logout } = useApp()
+  const [open, setOpen] = useState(false)
+  const [pw, setPw] = useState('')
+  const [err, setErr] = useState<string | null>(null)
+  if (!open) return <button className="min-h-12 w-full font-semibold text-rojo underline underline-offset-4" onClick={() => setOpen(true)}>Eliminar mi cuenta</button>
+  const submit = async (e: FormEvent) => {
+    e.preventDefault(); setErr(null)
+    try { await api('/api/auth/me', { method: 'DELETE', body: { password: pw } }); logout(); go('/') } catch (e) { setErr((e as Error).message) }
+  }
+  return (
+    <form onSubmit={submit} className="space-y-3 rounded-2xl border-2 border-rojo bg-rojo-50 p-4">
+      <p className="text-lg font-bold text-rojo">Eliminar mi cuenta</p>
+      <p>Se borrarán su nombre, número, ubicación, cultivos, mensajes y su participación en comunidades. Lo que publicó en su comunidad quedará como «Cuenta eliminada». No se puede deshacer.</p>
+      <Field label="Escriba su clave para confirmar"><input className={inputCls} type="password" autoComplete="current-password" value={pw} onChange={e => setPw(e.target.value)} /></Field>
+      {err && <p role="alert" className="font-semibold text-rojo">⚠️ {err}</p>}
+      <div className="grid grid-cols-2 gap-2"><Button type="button" variant="secondary" onClick={() => setOpen(false)}>Cancelar</Button><Button variant="danger">Eliminar</Button></div>
+    </form>
   )
 }

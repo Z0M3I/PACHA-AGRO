@@ -1,6 +1,5 @@
 """Asistente conversacional. El MISMO código atiende al simulador web y al webhook oficial.
 Respuestas cortas, en español sencillo, siempre indicando la fuente de los datos."""
-import time
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import select
@@ -19,22 +18,44 @@ MENU = ("👋 Hola, soy el asistente de AgroBolivia.\nEscriba un número o su pr
         "5️⃣ AVISOS de mi zona\n6️⃣ GUIAS para aprender\nCULTIVOS: ver mis cultivos\n"
         "Escriba BAJA para no recibir más mensajes.")
 
-# Estado de conversación en memoria (prototipo). En producción: Redis o tabla con expiración.
-_STATE: dict[str, dict] = {}
+# Estado de conversación guardado en la base de datos (tabla chat_state): sobrevive a reinicios y
+# despliegues, algo necesario con WhatsApp real. Expira tras 30 minutos sin mensajes.
 _TTL = 30 * 60
 
 
-def _state(key: str) -> dict:
-    st = _STATE.get(key)
-    if not st or time.time() - st.get("_t", 0) > _TTL:
-        st = {}
-    st["_t"] = time.time()
-    _STATE[key] = st
-    return st
+def _load_state(db: Session, key: str) -> dict:
+    import json
+
+    from app.models import ChatState, utcnow
+    row = db.get(ChatState, key)
+    if not row or (utcnow() - row.updated_at).total_seconds() > _TTL:
+        return {}
+    try:
+        return json.loads(row.data)
+    except ValueError:
+        return {}
+
+
+def _save_state(db: Session, key: str, st: dict) -> None:
+    import json
+
+    from app.models import ChatState, utcnow
+    row = db.get(ChatState, key) or ChatState(key=key)
+    row.data, row.updated_at = json.dumps(st, ensure_ascii=False), utcnow()
+    db.merge(row)
+    db.commit()
 
 
 def reset_state() -> None:
-    _STATE.clear()
+    """Borra todas las conversaciones guardadas (usado en pruebas)."""
+    from app import db as dbmod
+    from app.models import ChatState
+    try:
+        with dbmod.SessionLocal() as s:
+            s.query(ChatState).delete()
+            s.commit()
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _user_location(db: Session, user: User | None, st: dict) -> dict | None:
@@ -55,7 +76,17 @@ def _user_communities(db: Session, user: User) -> list[Community]:
 
 
 def handle(db: Session, key: str, text: str, user: User | None, mode: str = "real", today: date | None = None) -> list[str]:
-    st = _state(key)
+    st = _load_state(db, key)
+    try:
+        return _handle(db, st, text, user, mode, today)
+    finally:
+        try:
+            _save_state(db, key, st)
+        except Exception:  # noqa: BLE001
+            db.rollback()
+
+
+def _handle(db: Session, st: dict, text: str, user: User | None, mode: str, today: date | None) -> list[str]:
     found = find_municipality_by_name(text)
     if found:
         st["municipality_id"] = found["id"]

@@ -16,7 +16,7 @@ const FROST = {
 }
 
 export default function Weather() {
-  const { municipalityId, setMunicipalityId } = useApp()
+  const { municipalityId, setMunicipalityId, locationQuery, gps } = useApp()
   const [wx, setWx] = useState<W | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [map, setMap] = useState(false)
@@ -27,11 +27,11 @@ export default function Weather() {
     if (!municipalityId) return
     let current = true
     setWx(null); setErr(null)
-    api<W>(`/api/weather?municipality_id=${encodeURIComponent(municipalityId)}`, { timeoutMs: 65000 })
+    api<W>(`/api/weather?${locationQuery(municipalityId)}`, { timeoutMs: 65000 })
       .then(value => { if (current) setWx(value) })
       .catch(error => { if (current) setErr(error.message) })
     return () => { current = false }
-  }, [municipalityId, retry])
+  }, [municipalityId, retry, gps?.lat, gps?.lon])
 
   return (
     <div className="space-y-4">
@@ -39,6 +39,10 @@ export default function Weather() {
       <LocationSelector value={municipalityId} onChange={setMunicipalityId} />
       {!municipalityId ? null : err ? <ErrorBox message={err} onRetry={load} /> : !wx ? <Loading text="Buscando el pronóstico…" /> : (
         <>
+          {wx.location.far && <Notice tone="warn">Su ubicación está a {Math.round(wx.location.distance_km ?? 0)} km del municipio registrado más cercano ({wx.location.nearest_name}). El clima es de su punto exacto.</Notice>}
+          {wx.forecast.extra?.stale && (
+            <Notice tone="warn" ><span data-testid="stale-forecast"><strong>No pudimos actualizar el pronóstico ahora.</strong> Mostramos el último que obtuvimos ({updatedAt(wx.forecast.extra.stale_fetched_at)}). Vuelva a consultar más tarde.</span></Notice>
+          )}
           <FrostCard wx={wx} />
 
           {wx.forecast.available ? (

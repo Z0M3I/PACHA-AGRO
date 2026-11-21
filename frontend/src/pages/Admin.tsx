@@ -34,6 +34,12 @@ function Admin() {
   const decide = async (id: number, d: string) => { await api(`/api/admin/communities/${id}/${d}`, { method: 'POST' }); load() }
   const showMembers = async (cid: number) => setMembers({ cid, list: await api(`/api/admin/memberships?community_id=${cid}`) })
   const setRole = async (mid: number, role: string) => { await api(`/api/admin/memberships/${mid}/role`, { body: { role } }); if (members) showMembers(members.cid) }
+  const [temp, setTemp] = useState<{ name: string; pw: string } | null>(null)
+  const resetPw = async (uid: number, name: string) => {
+    if (!window.confirm(`¿Dar una clave temporal a ${name}? Su clave actual dejará de funcionar.`)) return
+    const r = await api<{ temporary_password: string }>(`/api/admin/users/${uid}/reset-password`, { method: 'POST' })
+    setTemp({ name, pw: r.temporary_password })
+  }
   const setGlobalRole = async (uid: number, role: string) => { await api(`/api/admin/users/${uid}/role`, { body: { role } }); load() }
   const deactivate = async (uid: number) => { if (window.confirm('¿Desactivar esta cuenta?')) { await api(`/api/admin/users/${uid}/deactivate`, { method: 'POST' }); load() } }
   if (err) return <ErrorBox message={err} onRetry={load} />
@@ -75,10 +81,13 @@ function Admin() {
       </section>
       <section>
         <h2 className="mb-2 text-xl font-bold">Usuarios ({users.length})</h2>
+        <p className="mb-2 text-musgo">¿Alguien olvidó su clave? Verifique su identidad en persona y dele una clave temporal: deberá cambiarla al ingresar.</p>
+        {temp && <Notice tone="ok"><span data-testid="temp-password">Clave temporal de {temp.name}: <strong className="text-xl tracking-widest">{temp.pw}</strong></span><br />Entréguela en persona. No se volverá a mostrar.</Notice>}
         <ul className="space-y-2">{users.map(u => (
-          <li key={u.id} className="flex items-center justify-between gap-2 rounded-xl border border-linea bg-papel p-3">
+          <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-linea bg-papel p-3">
             <span>{u.full_name} <span className="text-sm text-musgo">· …{u.phone_last4} · {u.role}{u.is_demo ? ' · demo' : ''}{!u.is_active ? ' · inactivo' : ''}</span></span>
-            {u.is_active && u.role !== 'admin' && <span className="flex shrink-0 gap-1">
+            {u.is_active && u.role !== 'admin' && <span className="flex flex-wrap gap-1">
+              <Button variant="ghost" onClick={() => resetPw(u.id, u.full_name)}>Clave temporal</Button>
               <Button variant="ghost" onClick={() => setGlobalRole(u.id, u.role === 'editor' ? 'farmer' : 'editor')}>{u.role === 'editor' ? 'Quitar editor' : 'Hacer editor'}</Button>
               <Button variant="ghost" onClick={() => deactivate(u.id)}>Desactivar</Button></span>}
           </li>))}</ul>

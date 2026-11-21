@@ -31,6 +31,10 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
       ? 'La conexión está muy lenta. Intente de nuevo en un momento.'
       : 'No hay conexión con AgroBolivia. Revise su internet e intente de nuevo.')
   } finally { clearTimeout(timer) }
+  if (res.headers.get('x-agb-offline')) {
+    // Respuesta guardada por el modo sin conexión (service worker): avisar a la interfaz.
+    window.dispatchEvent(new CustomEvent('agb-offline', { detail: res.headers.get('x-agb-cached-at') }))
+  }
   let data: any = null
   try { data = await res.json() } catch { /* sin cuerpo */ }
   if (!res.ok) {

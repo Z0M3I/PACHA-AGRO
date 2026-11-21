@@ -4,9 +4,9 @@ Ejecutadas el 21-11-2026. El backend usa fixtures. La suite de navegador usa el 
 
 | Suite | Comando | Resultado |
 |---|---|---|
-| Backend (pytest) | `cd backend && .venv/bin/python -m pytest` | **85/85** aprobadas |
+| Backend (pytest) | `cd backend && .venv/bin/python -m pytest` | **98/98** aprobadas |
 | Frontend unitarias (vitest) | `cd frontend && npm test` | **7/7** aprobadas |
-| Extremo a extremo (Playwright, Chromium, móvil, tableta y escritorio) | `node e2e/run.cjs http://localhost:8000` | **19/19** aprobadas (servidor recién iniciado; también contra PostgreSQL actualizado) |
+| Extremo a extremo (Playwright, Chromium, móvil, tableta y escritorio) | `node e2e/run.cjs http://localhost:8000` | **25/25** aprobadas (servidor recién iniciado; también contra PostgreSQL actualizado) |
 | Tipos TypeScript + compilación | `cd frontend && npm run build` | Sin errores |
 
 ## Casos de prueba por área
@@ -19,6 +19,12 @@ Ejecutadas el 21-11-2026. El backend usa fixtures. La suite de navegador usa el 
 | Comparador | Consulta real en 360, 768 y 1440 px | Resultados apilados en móvil y en columnas en pantallas amplias | e2e #13 |
 | Recomendación | La acción principal aparece antes de los criterios | Sí | e2e #2 |
 | Compartir | Mensaje con cultivo, municipio, resultado, «Orientación experimental» y, si aplica, «Caso simulado»; vista previa = mensaje enviado | Ambos modos verificados | `share.test.ts` (ambos modos), e2e (modo real) |
+| Clima en la nube | Caché persistente sobrevive a reinicios; si el proveedor falla se muestra el último pronóstico (≤12 h) marcado con su hora; datos viejos no se usan; clave de Open-Meteo pagado | Sí | `test_production`, e2e |
+| GPS | Municipio más cercano, fuera de Bolivia 422, aviso si está a >60 km; clima y recomendación con coordenadas; elegir municipio borra el GPS; sin permiso se explica | Sí | `test_production`, e2e |
+| Sin conexión | La app abre sin internet y muestra el último clima guardado con aviso y fecha | Sí (Chromium) | e2e |
+| Cuentas | Cambio de clave, eliminación de datos personales, clave temporal obligatoria de cambiar (también en el servidor) | Sí | `test_production`, e2e |
+| Producción | No arranca con SECRET_KEY débil, CORS `*`, SQLite o WhatsApp incompleto; HSTS; `/api/health` revisa la base | Sí, también con PostgreSQL 16 | `test_production`, manual |
+| WhatsApp | Estado de conversación guardado en la base de datos | Sí | `test_production` |
 | Avisos regionales | Segmentación por alcance (9 casos), validación de jerarquía, vigencia, retiro, filtros públicos y «mis avisos» | Correctos | `test_ported` |
 | Avisos regionales | Agricultor no publica; la API no otorga admin; editor publica y notifica solo a quien corresponde (simulado) | 403 / 422 / correcto | `test_ported`, e2e |
 | Cultivos de interés | Guardar, quitar duplicados, rechazar cultivos inexistentes; avisos por cultivo aparecen | Sí | `test_ported`, e2e |

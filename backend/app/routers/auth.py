@@ -11,7 +11,7 @@ from app.data.catalog import crops_config, get_municipality
 from app.db import get_db
 from app.deps import current_user
 from app.models import User
-from app.schemas import LoginIn, ProfileUpdate, RegisterIn, UserOut
+from app.schemas import DeleteAccountIn, LoginIn, PasswordChangeIn, ProfileUpdate, RegisterIn, UserOut
 from app.services.activity import log
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -67,3 +67,46 @@ def update_me(body: ProfileUpdate, user: User = Depends(current_user), db: Sessi
         log(db, "whatsapp_consentimiento", "alta" if body.whatsapp_opt_in else "baja", user.id)
     db.commit()
     return user
+
+
+@router.post("/password")
+def change_password(body: PasswordChangeIn, request: Request, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    login_limiter.check(f"{client_key(request)}:pw:{user.id}")
+    if not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(401, "La clave actual no es correcta.")
+    if body.new_password == body.current_password:
+        raise HTTPException(422, "La clave nueva debe ser distinta de la actual.")
+    user.password_hash = hash_password(body.new_password)
+    user.must_change_password = False
+    log(db, "clave_cambiada", "", user.id)
+    db.commit()
+    return {"ok": True, "user": UserOut.model_validate(user)}
+
+
+@router.delete("/me")
+def delete_account(body: DeleteAccountIn, request: Request, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Elimina los datos personales de la cuenta (derecho de supresión).
+
+    Se borran nombre, teléfono, clave, ubicación, cultivos, consentimiento, mensajes y membresías.
+    Las publicaciones hechas en la comunidad quedan, pero firmadas como «Cuenta eliminada»."""
+    import secrets
+
+    from app.models import Attendance, Membership, OutboundMessage
+
+    login_limiter.check(f"{client_key(request)}:del:{user.id}")
+    if user.role == "admin":
+        raise HTTPException(403, "La cuenta de administrador no se puede eliminar desde aquí.")
+    if not verify_password(body.password, user.password_hash):
+        raise HTTPException(401, "La clave no es correcta.")
+    db.query(OutboundMessage).filter(OutboundMessage.user_id == user.id).delete()
+    db.query(Attendance).filter(Attendance.user_id == user.id).delete()
+    db.query(Membership).filter(Membership.user_id == user.id).delete()
+    user.full_name = "Cuenta eliminada"
+    user.phone = f"eliminado-{user.id}-{secrets.token_hex(3)}"[:20]
+    user.password_hash = hash_password(secrets.token_urlsafe(32))
+    user.is_active = False
+    user.whatsapp_opt_in, user.whatsapp_opt_in_at = False, None
+    user.default_municipality_id, user.crop_interests = None, ""
+    log(db, "cuenta_eliminada", "", None)
+    db.commit()
+    return {"ok": True, "message": "Su cuenta y sus datos personales fueron eliminados."}

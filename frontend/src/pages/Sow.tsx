@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { GpsButton } from '../components/GpsButton'
 import { DepartmentList, MunicipalityList, OptionButton } from '../components/LocationPicker'
 import { Button, Card, DataTag, ErrorBox, Loading, Notice, PageTitle, STATUS_UI } from '../components/ui'
 import { api } from '../lib/api'
+import { updatedAt } from '../lib/format'
 import { shareText, whatsappShareUrl } from '../lib/share'
 import { useApp } from '../lib/store'
 import type { Crop, Recommendation } from '../lib/types'
@@ -10,7 +12,7 @@ type Answers = { dept?: string; muni?: string; crop?: string; variety?: string; 
 const STEPS = ['dept', 'muni', 'crop', 'variety', 'moisture', 'irrigation'] as const
 
 export default function Sow() {
-  const { findMunicipality, municipalityId, setMunicipalityId } = useApp()
+  const { findMunicipality, municipalityId, setMunicipalityId, gps } = useApp()
   const saved = findMunicipality(municipalityId)
   const [a, setA] = useState<Answers>({})
   const [step, setStep] = useState(0)
@@ -29,11 +31,13 @@ export default function Sow() {
     const ans = { ...a, irrigation }
     setA(ans); setLoading(true); setErr(null)
     try {
+      // Con GPS para ese municipio se envía el punto exacto (el clima es de su parcela, no del centro urbano).
+      const where = gps && gps.municipalityId === ans.muni ? { lat: gps.lat, lon: gps.lon } : { municipality_id: ans.muni }
       const r = await api<Recommendation>('/api/recommendations', { timeoutMs: 65000, body: {
-        municipality_id: ans.muni, crop: ans.crop, variety: ans.variety === 'Otra / no sé' ? null : ans.variety,
+        ...where, crop: ans.crop, variety: ans.variety === 'Otra / no sé' ? null : ans.variety,
         soil_moisture: ans.moisture, irrigation: ans.irrigation, mode: 'real' } })
       setResult(r)
-      if (ans.muni) setMunicipalityId(ans.muni)
+      if (ans.muni && !(gps && gps.municipalityId === ans.muni)) setMunicipalityId(ans.muni)
     } catch (e) { setErr((e as Error).message) } finally { setLoading(false) }
   }
   const restart = () => { setA({}); setStep(0); setResult(null) }
@@ -57,7 +61,8 @@ export default function Sow() {
 
       {key === 'dept' && (<>
         <Q n={1} text="¿En qué departamento está?" />
-        {saved && <div className="mb-3"><OptionButton onClick={useSaved}>📍 Usar {saved.name}, {saved.department_name}</OptionButton></div>}
+        <div className="mb-3"><GpsButton onLocated={g => { const m = findMunicipality(g.municipalityId); if (m) { setA({ dept: m.department_id, muni: m.id }); setStep(2) } }} /></div>
+        {saved && <div className="mb-3"><OptionButton onClick={useSaved}>{gps && gps.municipalityId === saved.id ? `📍 Usar mi ubicación guardada (cerca de ${saved.name})` : `📍 Usar ${saved.name}, ${saved.department_name}`}</OptionButton></div>}
         <DepartmentList selected={a.dept} onPick={v => set('dept', v)} />
       </>)}
       {key === 'muni' && a.dept && (<><Q n={2} text="¿En qué municipio o comunidad?" /><MunicipalityList departmentId={a.dept} selected={a.muni} onPick={v => set('muni', v)} /></>)}
@@ -159,6 +164,9 @@ function Result({ r, onRestart }: { r: Recommendation; onRestart: () => void }) 
         <p className="mt-2 text-sm text-musgo">Las reglas son experimentales y están pendientes de validación agronómica. No es una fecha exacta de siembra.</p>
       </details>
 
+      {r.weather_summary?.stale && (
+        <Notice tone="warn"><span data-testid="stale-forecast"><strong>Pronóstico no actualizado.</strong> Usamos el último pronóstico obtenido ({updatedAt(r.weather_summary.stale_fetched_at ?? null)}). Vuelva a consultar más tarde antes de decidir.</span></Notice>
+      )}
       {noForecast && (
         <Notice tone="warn">
           <strong>Sin pronóstico ahora.</strong> {r.weather_summary?.forecast_error} {r.weather_summary?.recent_source ? 'La consulta incluye datos históricos disponibles.' : 'Revise los criterios que tienen datos disponibles.'}

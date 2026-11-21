@@ -41,18 +41,18 @@ export default function Home() {
 }
 
 function QuickWeather() {
-  const { municipalityId, findMunicipality } = useApp()
+  const { municipalityId, findMunicipality, locationQuery, gps } = useApp()
   const municipality = findMunicipality(municipalityId)
   const [weather, setWeather] = useState<{ id: string; value: Weather | null }>()
   const id = municipality?.id
   useEffect(() => {
     if (!id) return
     let current = true
-    api<Weather>(`/api/weather?municipality_id=${encodeURIComponent(id)}`, { timeoutMs: 65000 })
+    api<Weather>(`/api/weather?${locationQuery(id)}`, { timeoutMs: 65000 })
       .then(value => { if (current) setWeather({ id, value }) })
       .catch(() => { if (current) setWeather({ id, value: null }) })
     return () => { current = false }
-  }, [id])
+  }, [id, gps?.lat, gps?.lon])
   const current = weather?.id === id ? weather?.value : undefined
   const today = current?.forecast.available ? current.forecast.daily[0] : undefined
   return (

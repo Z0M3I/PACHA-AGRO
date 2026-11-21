@@ -32,5 +32,13 @@ def recommend(db: Session, municipality: dict, answers: Answers, mode: str = "re
         "forecast_available": wx["forecast"]["available"], "forecast_error": wx["forecast"]["error"],
         "forecast_source": wx["forecast"]["source"], "recent_source": wx["recent"]["source"] if wx["recent"]["available"] else None,
         "fetched_at": wx["forecast"]["fetched_at"],
+        "stale": bool(wx["forecast"].get("extra", {}).get("stale")),
+        "stale_fetched_at": wx["forecast"].get("extra", {}).get("stale_fetched_at"),
     }
+    if municipality.get("gps"):
+        result["location"]["gps"] = True
+        result["location"]["distance_km"] = municipality["distance_km"]
+        if municipality["far"]:
+            result["notes"] = [f"Su ubicación está a {municipality['distance_km']:.0f} km del municipio registrado más cercano "
+                               f"({municipality['nearest_name']}): el calendario de siembra usado puede no aplicar."] + result["notes"]
     return result

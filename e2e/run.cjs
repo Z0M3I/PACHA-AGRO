@@ -23,9 +23,11 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
 
 ;(async () => {
   const browser = await chromium.launch()
-  const phone = { viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true }
+  // Los service workers se bloquean por defecto: sus peticiones no pasan por page.route (las pruebas que simulan
+  // respuestas dejarían de funcionar). La prueba de modo sin conexión los activa explícitamente.
+  const phone = { viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true, serviceWorkers: 'block' }
   const newPage = async (opts = phone) => {
-    const ctx = await browser.newContext(opts)
+    const ctx = await browser.newContext({ serviceWorkers: 'block', ...opts })
     const p = await ctx.newPage()
     p.errors = []
     p.on('pageerror', e => p.errors.push(e.message))
@@ -298,6 +300,113 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await btn(p, /Ver mapa de municipios/).click(); await p.locator('.leaflet-container').waitFor()
     await p.goto(`${BASE}/#/privacidad`); await p.getByRole('heading', { name: 'Qué datos pedimos' }).waitFor()
     await p.goto(`${BASE}/#/terminos`); await p.getByRole('heading', { name: 'Avisos no oficiales' }).waitFor()
+  })
+
+  // ---- Mejoras para uso real ----
+
+  await test('GPS: «Usar mi ubicación» da el clima del punto exacto y el municipio más cercano', async () => {
+    const p = await newPage({ ...phone, geolocation: { latitude: -18.95, longitude: -66.70 }, permissions: ['geolocation'] })
+    const weatherReqs = []
+    p.on('request', r => { if (r.url().includes('/api/weather?')) weatherReqs.push(r.url()) })
+    await p.goto(`${BASE}/#/clima`)
+    await p.getByTestId('gps-button').click()
+    await p.getByText('Cerca de Challapata').waitFor()
+    await p.getByRole('heading', { name: /Avisos oficiales/ }).waitFor()
+    assert(weatherReqs.some(u => u.includes('lat=-18.95') && u.includes('lon=-66.7')), 'el clima no usó las coordenadas: ' + weatherReqs.join(' '))
+    // Asistente de siembra: el GPS salta directo a elegir cultivo y envía las coordenadas
+    const recs = []
+    p.on('request', r => { if (r.url().endsWith('/api/recommendations')) recs.push(r.postDataJSON()) })
+    await p.goto(`${BASE}/#/sembrar`)
+    await p.getByTestId('gps-button').click()
+    await p.getByText('¿Qué cultivo quiere sembrar?').waitFor()
+    for (const t of [/Quinua/, /Pandela/, /Sí, está húmedo/, /Depende de la lluvia/]) await btn(p, t).click()
+    await p.getByTestId('main-action').waitFor()
+    assert(recs[0].lat === -18.95 && recs[0].lon === -66.7 && !recs[0].municipality_id, 'la recomendación no usó GPS')
+    // Elegir un municipio a mano borra el GPS
+    await p.goto(`${BASE}/#/clima`); await btn(p, /Cambiar/).click(); await btn(p, /^Oruro ≈/).click()  // abre en el departamento actual
+    await p.getByText('Oruro, Oruro').waitFor()
+    assert(await p.evaluate(() => localStorage.getItem('agb_gps')) === null, 'el GPS no se borró al elegir otro municipio')
+  })
+
+  await test('GPS: sin permiso se explica y se puede elegir de la lista', async () => {
+    const p = await newPage({ ...phone, permissions: [] })
+    await p.goto(`${BASE}/#/clima`)
+    await p.getByTestId('gps-button').click()
+    await p.getByText('No dio permiso para usar su ubicación').waitFor()
+    assert(await btn(p, /^Oruro$/).isVisible(), 'no se puede elegir de la lista')
+  })
+
+  await test('Sin conexión: la app abre y muestra el último clima guardado con aviso', async () => {
+    const ctx = await browser.newContext({ ...phone, serviceWorkers: 'allow' })
+    await ctx.addInitScript(() => localStorage.setItem('agb_municipality', 'or-oruro'))
+    const p = await ctx.newPage()
+    await p.goto(`${BASE}/#/clima`)
+    await p.evaluate(() => navigator.serviceWorker.ready)
+    await p.reload(); await p.getByRole('heading', { name: /Avisos oficiales/ }).waitFor()  // ahora el service worker controla la página y guarda el clima
+    await ctx.setOffline(true)
+    await p.reload(); await p.getByRole('heading', { name: /Avisos oficiales/ }).waitFor()
+    await p.getByTestId('offline-banner').waitFor()
+    const banner = await p.getByTestId('offline-banner').innerText()
+    assert(banner.includes('Mostrando datos guardados'), 'aviso incorrecto: ' + banner)
+    await p.screenshot({ path: `${OUT}/sin-conexion.png` })
+    await ctx.setOffline(false); await ctx.close()
+    return banner.trim()
+  })
+
+  await test('Pronóstico desactualizado: se dice claramente y con su hora', async () => {
+    const p = await newPage()
+    await p.addInitScript(() => localStorage.setItem('agb_municipality', 'or-oruro'))
+    await p.route('**/api/weather?*', async route => {
+      const r = await route.fetch(); const j = await r.json()
+      if (!j.forecast.available) j.forecast = { ...j.forecast, available: true, daily: [{ date: new Date().toISOString().slice(0, 10), tmin: 1, tmax: 15, precip_mm: 0, precip_prob: 5, weather_code: 1, storm: false }], current_temp: 8 }
+      j.forecast.extra = { ...(j.forecast.extra || {}), stale: true, stale_fetched_at: '2026-11-21T08:00Z', error_now: 'límite' }
+      await route.fulfill({ response: r, json: j })
+    })
+    await p.goto(`${BASE}/#/clima`)
+    const t = await p.getByTestId('stale-forecast').innerText()
+    assert(t.includes('No pudimos actualizar el pronóstico'), t)
+  })
+
+  await test('Cuenta: cambiar clave y eliminar la cuenta', async () => {
+    const p = await newPage()
+    const num = '6' + String(Math.floor(Math.random() * 1e7)).padStart(7, '0')
+    await p.goto(`${BASE}/#/registro`)
+    await p.fill('input[autocomplete=name]', 'Rosa Prueba'); await p.fill('input[autocomplete=tel]', num); await p.fill('input[type=password]', 'clave123')
+    await btn(p, /Crear cuenta/).click(); await p.waitForURL(/comunidad/)
+    await p.goto(`${BASE}/#/perfil`)
+    await field(p, 'Clave actual').fill('clave123'); await field(p, 'Clave nueva (mínimo 8)').fill('otraClave9'); await field(p, 'Repita la clave nueva').fill('otraClave9')
+    await btn(p, /Guardar clave nueva/).click(); await p.getByText('Clave cambiada').waitFor()
+    await btn(p, /Eliminar mi cuenta/).click()
+    await field(p, 'Escriba su clave para confirmar').fill('otraClave9')
+    await p.getByRole('button', { name: 'Eliminar', exact: true }).click()
+    await p.waitForURL(u => u.hash === '#/' || u.hash === '')
+    const r = await p.evaluate(async n => (await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: n, password: 'otraClave9' }) })).status, num)
+    assert(r === 401, 'la cuenta eliminada todavía puede ingresar')
+  })
+
+  await test('Clave olvidada: el administrador da una clave temporal y la persona debe cambiarla', async () => {
+    const u = await newPage()
+    const num = '6' + String(Math.floor(Math.random() * 1e7)).padStart(7, '0')
+    await u.goto(`${BASE}/#/registro`)
+    await u.fill('input[autocomplete=name]', 'Pedro Olvido'); await u.fill('input[autocomplete=tel]', num); await u.fill('input[type=password]', 'clave123')
+    await btn(u, /Crear cuenta/).click(); await u.waitForURL(/comunidad/)
+    const admin = await newPage()
+    await admin.goto(`${BASE}/#/ingresar`)
+    await admin.fill('input[autocomplete=tel]', ADMIN_PHONE); await admin.fill('input[type=password]', ADMIN_PASSWORD)
+    await btn(admin, /^Ingresar$/).click(); await admin.waitForURL(/comunidad/)
+    await admin.goto(`${BASE}/#/admin`)
+    admin.once('dialog', d => d.accept())
+    await admin.locator('li', { hasText: 'Pedro Olvido' }).getByRole('button', { name: 'Clave temporal' }).click()
+    const temp = (await admin.getByTestId('temp-password').innerText()).match(/: (\S+)$/)[1]
+    const p = await newPage()
+    await p.goto(`${BASE}/#/ingresar`)
+    await p.fill('input[autocomplete=tel]', num); await p.fill('input[type=password]', temp)
+    await btn(p, /^Ingresar$/).click()
+    await p.getByText('Cree su clave nueva').waitFor()
+    await p.goto(`${BASE}/#/comunidad`); await p.getByText('Cree su clave nueva').waitFor()  // no puede saltarse el paso
+    await field(p, 'Clave temporal').fill(temp); await field(p, 'Clave nueva (mínimo 8)').fill('nuevaClave7'); await field(p, 'Repita la clave nueva').fill('nuevaClave7')
+    await btn(p, /Guardar clave nueva/).click()
+    await p.getByText('Aún no pertenece a ninguna comunidad').waitFor()
   })
 
   await browser.close()

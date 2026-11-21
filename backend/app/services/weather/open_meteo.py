@@ -22,8 +22,13 @@ def fetch_forecast(lat: float, lon: float, client: httpx.Client) -> Block:
         "timezone": "America/La_Paz",
         "forecast_days": 7,
     }
+    url = s.open_meteo_url
+    if s.open_meteo_api_key:
+        # Plan pagado (uso comercial o más consultas): otro dominio y la clave como parámetro.
+        url = url.replace("://api.open-meteo.com", "://customer-api.open-meteo.com")
+        params["apikey"] = s.open_meteo_api_key
     try:
-        r = client.get(s.open_meteo_url, params=params, timeout=s.weather_timeout_seconds)
+        r = client.get(url, params=params, timeout=s.weather_timeout_seconds)
     except httpx.HTTPError as e:
         raise ProviderError(f"No se pudo conectar con Open-Meteo ({type(e).__name__}).") from e
     try:

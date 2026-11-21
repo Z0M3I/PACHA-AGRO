@@ -37,6 +37,7 @@ ADDED_COLUMNS = [
     ("outbound_messages", "notice_id", "INTEGER"),
     ("outbound_messages", "error", "VARCHAR(300)"),
     ("outbound_messages", "updated_at", "TIMESTAMP"),
+    ("users", "must_change_password", "BOOLEAN DEFAULT FALSE"),
 ]
 
 

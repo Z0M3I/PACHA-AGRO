@@ -58,6 +58,25 @@ def set_user_role(uid: int, body: UserRoleIn, admin: User = Depends(admin_user),
     return {"id": u.id, "role": u.role}
 
 
+@router.post("/users/{uid}/reset-password")
+def reset_password(uid: int, admin: User = Depends(admin_user), db: Session = Depends(get_db)):
+    """Recuperación de clave sin SMS: el administrador entrega en persona una clave temporal (se muestra una sola vez)."""
+    import secrets
+
+    from app.core.security import hash_password
+
+    u = db.get(User, uid)
+    if u is None or not u.is_active or u.role == "admin":
+        raise HTTPException(400, "No se puede restablecer la clave de esta cuenta.")
+    alphabet = "abcdefghjkmnpqrstuvwxyz23456789"  # sin letras o números que se confunden (l, 1, o, 0)
+    temp = "".join(secrets.choice(alphabet) for _ in range(8))
+    u.password_hash = hash_password(temp)
+    u.must_change_password = True
+    log(db, "clave_restablecida", u.full_name, admin.id)
+    db.commit()
+    return {"temporary_password": temp, "message": "Entregue esta clave en persona. La persona deberá cambiarla al ingresar."}
+
+
 @router.get("/messages")
 def messages(admin: User = Depends(admin_user), db: Session = Depends(get_db)):
     """Historial de mensajes salientes con su estado (simulado, enviado, entregado, leído, fallido)."""

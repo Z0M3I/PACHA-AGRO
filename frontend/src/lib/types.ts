@@ -1,12 +1,12 @@
 export type Status = 'verde' | 'amarillo' | 'rojo' | 'gris'
 export interface Municipality { id: string; name: string; lat: number; lon: number; elevation: number; region: string }
 export interface Department { id: string; name: string; municipalities: Municipality[] }
-export interface User { id: number; full_name: string; phone: string; role: string; is_demo: boolean; whatsapp_opt_in: boolean; default_municipality_id: string | null; crops: string[] }
+export interface User { id: number; full_name: string; phone: string; role: string; is_demo: boolean; whatsapp_opt_in: boolean; default_municipality_id: string | null; crops: string[]; must_change_password?: boolean }
 export interface Daily { date: string; tmin: number | null; tmax: number | null; precip_mm: number | null; precip_prob: number | null; weather_code: number | null; storm: boolean }
 export interface Block { available: boolean; source: string; kind: string; fetched_at: string | null; error: string | null; daily: Daily[]; current_temp: number | null; current_time: string | null; soil_moisture: number | null; soil_moisture_unit: string | null; extra: Record<string, any> }
 export interface Weather {
   mode: 'real' | 'simulado'
-  location: { id: string; name: string; department_name: string; lat: number; lon: number; elevation: number; region: string }
+  location: { id: string; name: string; department_name: string; lat: number; lon: number; elevation: number; region: string; gps?: boolean; nearest_name?: string; distance_km?: number; far?: boolean }
   generated_at: string
   forecast: Block
   recent: Block
@@ -22,7 +22,7 @@ export interface Recommendation {
   scenario_status: 'implemented' | 'demo' | 'no_rules'; scenario_label: string; mode: string; disclaimer: string
   criteria: Criterion[]; actions: string[]; sources: string[]; notes: string[]; variety_note?: string
   key_factor: Criterion | null; main_action: string; missing_data: string[]; confidence_explanation: string
-  weather_summary?: { forecast_available: boolean; forecast_error: string | null; forecast_source: string; recent_source: string | null; fetched_at: string | null }
+  weather_summary?: { forecast_available: boolean; forecast_error: string | null; forecast_source: string; recent_source: string | null; fetched_at: string | null; stale?: boolean; stale_fetched_at?: string | null }
 }
 export interface Crop { id: string; name: string; emoji: string; varieties: string[]; regions: Record<string, string> }
 export interface Community { id: number; name: string; description: string; status: string; is_demo: boolean; department_name: string; municipality_id: string; municipality_name: string; members: number; representatives: string[]; my_membership?: { id: number; role: string; status: string } | null }

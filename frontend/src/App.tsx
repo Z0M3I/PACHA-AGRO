@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { BottomNav } from './components/BottomNav'
 import { LogoMark } from './components/Logo'
 import { Loading } from './components/ui'
@@ -20,6 +20,7 @@ const Legal = lazy(() => import('./pages/Legal'))
 const Auth = lazy(() => import('./pages/Auth').then(m => ({ default: m.Login })))
 const Register = lazy(() => import('./pages/Auth').then(m => ({ default: m.Register })))
 const Profile = lazy(() => import('./pages/Auth').then(m => ({ default: m.Profile })))
+const ForcedPassword = lazy(() => import('./pages/Auth').then(m => ({ default: () => <m.ChangePassword forced /> })))
 
 function Page({ parts }: { parts: string[] }) {
   const [a, b, c] = parts
@@ -51,6 +52,26 @@ function Page({ parts }: { parts: string[] }) {
   }
 }
 
+/** Aviso visible cuando no hay conexión o se muestran datos guardados. */
+function OfflineBanner() {
+  const [online, setOnline] = useState(navigator.onLine)
+  const [cachedAt, setCachedAt] = useState<string | null>(null)
+  useEffect(() => {
+    const on = () => { setOnline(true); setCachedAt(null) }
+    const off = () => setOnline(false)
+    const cached = (e: Event) => setCachedAt((e as CustomEvent<string | null>).detail ?? '')
+    window.addEventListener('online', on); window.addEventListener('offline', off); window.addEventListener('agb-offline', cached)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); window.removeEventListener('agb-offline', cached) }
+  }, [])
+  if (online && cachedAt === null) return null
+  const when = cachedAt ? new Date(cachedAt).toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' }) : null
+  return (
+    <div role="status" data-testid="offline-banner" className="border-b-2 border-ocre bg-sol-50 px-4 py-2 text-center font-semibold text-sol-ink">
+      📶 Sin conexión.{cachedAt !== null ? ` Mostrando datos guardados${when ? ` (${when})` : ''}` : ' Se mostrarán los últimos datos guardados.'}
+    </div>
+  )
+}
+
 export default function App() {
   const parts = useRoute()
   const { user } = useApp()
@@ -72,8 +93,9 @@ export default function App() {
           </a>
         </div>
       </header>
+      <OfflineBanner />
       <main id="main" tabIndex={-1} className={`site-main ${wide ? 'site-main-wide' : ''}`}>
-        <Suspense fallback={<Loading />}><Page parts={parts} /></Suspense>
+        <Suspense fallback={<Loading />}>{user?.must_change_password ? <ForcedPassword /> : <Page parts={parts} />}</Suspense>
       </main>
       <BottomNav current={nav} />
     </div>

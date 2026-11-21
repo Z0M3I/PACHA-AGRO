@@ -27,6 +27,8 @@ class User(Base):
     default_municipality_id: Mapped[str | None] = mapped_column(String(60), nullable=True)
     # Cultivos de interés separados por coma (ej. "quinua,papa"); segmentan los avisos regionales.
     crop_interests: Mapped[str] = mapped_column(String(200), default="")
+    # Clave temporal dada por un administrador: debe cambiarse al ingresar.
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     @property
@@ -167,3 +169,23 @@ class RegionalNotice(Base):
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class WeatherCache(Base):
+    """Caché persistente de datos meteorológicos.
+
+    Sobrevive a reinicios y despliegues, se comparte entre procesos y permite mostrar el último
+    pronóstico obtenido (con su hora) cuando el proveedor falla o limita las consultas."""
+    __tablename__ = "weather_cache"
+    key: Mapped[str] = mapped_column(String(120), primary_key=True)
+    payload: Mapped[str] = mapped_column(Text)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class ChatState(Base):
+    """Estado de conversación del asistente de WhatsApp (antes en memoria; se perdía al reiniciar)."""
+    __tablename__ = "chat_state"
+    key: Mapped[str] = mapped_column(String(120), primary_key=True)
+    data: Mapped[str] = mapped_column(Text, default="{}")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
