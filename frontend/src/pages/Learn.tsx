@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { LessonArt } from '../components/Illustrations'
 import { Button, Card, ErrorBox, Loading, Notice, PageTitle } from '../components/ui'
 import { api } from '../lib/api'
 import { SimpleText } from '../components/SimpleText'
+import { ArticleGrid } from '../components/ArticleCard'
+import { ArticleCover } from '../components/ArticleCover'
+import { lessonArticle, libraryArticle } from '../lib/articles'
 import { useApp } from '../lib/store'
 import type { Library } from '../lib/types'
 
@@ -46,13 +48,7 @@ function Lessons({ lessonId }: { lessonId?: string }) {
     <div className="space-y-4">
       <PageTitle icon="📚" title="Aprendamos sobre nuestro campo" subtitle="Lecciones cortas con una pregunta al final." />
       <Tabs current="lecciones" />
-      <ul className="grid gap-3">
-        {c.lessons.map(l => (
-          <li key={l.id}><a href={`#/aprender/${l.id}`} className="flex items-center gap-4 rounded-2xl border border-linea bg-papel p-3">
-            <LessonArt icon={l.icon} /><span><span className="block text-xl font-bold text-bosque">{l.title}</span><span className="text-musgo">{l.minutes} minutos</span></span>
-          </a></li>
-        ))}
-      </ul>
+      <ArticleGrid items={c.lessons.map(lessonArticle)} />
       <Card>
         <h2 className="font-bold">🗣️ Idiomas</h2>
         <ul className="mt-1">{c.available_languages.map(x => <li key={x.code}>{x.name}: {x.status === 'pendiente' ? 'en preparación (requiere revisión lingüística)' : `${x.lessons} lecciones`}</li>)}</ul>
@@ -68,7 +64,8 @@ function LessonView({ l, next }: { l: Lesson; next?: Lesson }) {
   return (
     <article className="space-y-4">
       <a href="#/aprender" className="inline-block min-h-10 font-semibold text-bosque underline">← Todas las lecciones</a>
-      <div className="flex items-center gap-4"><LessonArt icon={l.icon} size={80} /><h1 className="font-display text-[1.7rem] font-bold leading-tight text-bosque">{l.title}</h1></div>
+      {(() => { const a = lessonArticle(l); return <ArticleCover motif={a.motif} band={a.band} bandColor={a.bandColor} /> })()}
+      <h1 className="font-display text-[1.7rem] font-bold leading-tight text-bosque">{l.title}</h1>
       <ol className="space-y-3">
         {l.points.map((p, i) => (
           <li key={i} className="flex gap-3 rounded-2xl border border-linea bg-papel p-4 text-lg">
@@ -114,6 +111,7 @@ function LibraryView({ itemId }: { itemId?: string }) {
     return (
       <article className="space-y-4">
         <a href="#/aprender/biblioteca" className="inline-block min-h-10 font-semibold text-bosque underline">← Biblioteca</a>
+        {(() => { const a = libraryArticle(it, lib.types); return <ArticleCover motif={a.motif} band={a.band} bandColor={a.bandColor} /> })()}
         <p className="text-sm font-bold uppercase tracking-wide text-tierra">{lib.types[it.type]} · {it.reading_minutes} min</p>
         <h1 className="font-display text-[1.7rem] font-bold leading-tight text-bosque">{it.title}</h1>
         <p className="text-lg text-musgo">{it.summary}</p>
@@ -129,7 +127,7 @@ function LibraryView({ itemId }: { itemId?: string }) {
     <div className="space-y-4">
       <PageTitle icon="📚" title="Biblioteca" subtitle="Guías y fichas cortas. Filtre por su cultivo o su zona." />
       <Tabs current="biblioteca" />
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
         <label className="block"><span className="mb-1 block font-semibold">Cultivo</span>
           <select className={sel} value={crop} onChange={e => setCrop(e.target.value)}>
             <option value="">Todos</option><option value="quinua">Quinua</option><option value="papa">Papa</option><option value="maiz">Maíz</option><option value="haba">Haba</option><option value="cebada">Cebada</option>
@@ -138,22 +136,14 @@ function LibraryView({ itemId }: { itemId?: string }) {
           <select className={sel} value={type} onChange={e => setType(e.target.value)}>
             <option value="">Todos</option>{Object.entries(lib.types).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select></label>
-        <label className="col-span-2 block"><span className="mb-1 block font-semibold">Departamento</span>
+        <label className="col-span-2 block md:col-span-1"><span className="mb-1 block font-semibold">Departamento</span>
           <select className={sel} value={dept} onChange={e => setDept(e.target.value)}>
             <option value="">Todo el país</option>{departments?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select></label>
       </div>
       <p className="text-musgo" role="status">{items.length} de {lib.total} recursos</p>
       {items.length === 0 ? <Notice>No hay recursos con esos filtros.</Notice> : (
-        <ul className="grid gap-3">
-          {items.map(i => (
-            <li key={i.id}><a href={`#/aprender/biblioteca/${i.id}`} className="block rounded-2xl border border-linea bg-papel p-4">
-              <span className="text-sm font-bold uppercase tracking-wide text-tierra">{lib.types[i.type]} · {i.reading_minutes} min</span>
-              <span className="mt-1 block text-xl font-bold text-bosque">{i.title}</span>
-              <span className="block text-musgo">{i.summary}</span>
-            </a></li>
-          ))}
-        </ul>
+        <ArticleGrid items={items.map(i => libraryArticle(i, lib.types))} showSummary />
       )}
       <Notice tone="warn">{lib.note}</Notice>
       <p className="text-sm text-musgo">{lib.source_project}</p>

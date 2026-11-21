@@ -409,6 +409,29 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await p.getByText('Aún no pertenece a ninguna comunidad').waitFor()
   })
 
+  await test('Portada estilo revista: artículos recomendados con categoría y enlace (móvil y escritorio)', async () => {
+    for (const [width, cols] of [[360, 1], [1280, 3]]) {
+      const p = await newPage({ viewport: { width, height: 900 } })
+      await p.goto(BASE)
+      await p.getByRole('heading', { name: 'Artículos recomendados' }).waitFor()
+      const cards = p.getByTestId('article-card')
+      await cards.first().waitFor()
+      assert(await cards.count() === 6, `se esperaban 6 artículos, hay ${await cards.count()}`)
+      const boxes = await Promise.all((await cards.all()).slice(0, 3).map(c => c.boundingBox()))
+      const perRow = boxes.filter(b => Math.abs(b.y - boxes[0].y) < 2).length
+      assert(perRow === cols, `a ${width}px hay ${perRow} por fila (esperado ${cols})`)
+      assert(await p.evaluate(() => document.documentElement.scrollWidth) === width, `desborde a ${width}px`)
+      if (width === 1280) {
+        const first = cards.first()
+        const title = (await first.locator('.article-title').innerText()).trim()
+        assert((await first.locator('.article-band').innerText()).trim().length > 0, 'sin franja de categoría')
+        await first.click()
+        await p.getByRole('heading', { name: title }).waitFor()
+      }
+      await p.context().close()
+    }
+  })
+
   await browser.close()
   fs.writeFileSync(path.join(OUT, 'resultados.json'), JSON.stringify(results, null, 2))
   const failed = results.filter(r => !r.ok).length
