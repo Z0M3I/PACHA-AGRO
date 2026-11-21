@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { GpsButton } from '../components/GpsButton'
 import { DepartmentList, MunicipalityList, OptionButton } from '../components/LocationPicker'
 import { Button, Card, DataTag, ErrorBox, Loading, Notice, PageTitle, STATUS_UI, StatusMark } from '../components/ui'
@@ -11,10 +11,10 @@ import type { Crop, Recommendation } from '../lib/types'
 type Answers = { dept?: string; muni?: string; crop?: string; variety?: string; moisture?: string; irrigation?: string }
 const STEPS = ['dept', 'muni', 'crop', 'variety', 'moisture', 'irrigation'] as const
 
-export default function Sow() {
+export default function Sow({ presetCrop }: { presetCrop?: string }) {
   const { findMunicipality, municipalityId, setMunicipalityId, gps } = useApp()
   const saved = findMunicipality(municipalityId)
-  const [a, setA] = useState<Answers>({})
+  const [a, setA] = useState<Answers>(presetCrop ? { crop: presetCrop } : {})
   const [step, setStep] = useState(0)
   const [crops, setCrops] = useState<Crop[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -42,6 +42,14 @@ export default function Sow() {
   }
   const restart = () => { setA({}); setStep(0); setResult(null) }
 
+  // Acceso rápido desde la portada (#/sembrar/cultivo/papa): al llegar a la pregunta del cultivo se salta una vez.
+  const skipped = useRef(false)
+  useEffect(() => {
+    if (presetCrop && step === 2 && a.crop === presetCrop && !skipped.current && crops?.some(c => c.id === presetCrop)) {
+      skipped.current = true; setStep(3)
+    }
+  }, [step, crops])
+
   if (loading) return <><PageTitle title="¿Cuándo puedo sembrar?" /><Loading text="Revisando clima y calendario…" /></>
   if (result) return <Result r={result} onRestart={restart} />
 
@@ -51,7 +59,7 @@ export default function Sow() {
 
   return (
     <div>
-      <PageTitle title="¿Cuándo puedo sembrar?" subtitle="Responda 6 preguntas cortas." />
+      <PageTitle title="¿Cuándo puedo sembrar?" subtitle={presetCrop && crops?.find(c => c.id === presetCrop) ? `Consulta para ${crops.find(c => c.id === presetCrop)!.name.toLowerCase()}. Responda unas preguntas cortas.` : 'Responda 6 preguntas cortas.'} />
       <div className="mb-4" aria-label={`Paso ${step + 1} de 6`}>
         <div className="flex gap-1.5" aria-hidden="true">{STEPS.map((_, i) => <span key={i} className={`h-2 flex-1 rounded-full ${i <= step ? 'bg-bosque' : 'bg-linea'}`} />)}</div>
         <div className="mt-1 flex justify-between text-musgo"><span>Paso {step + 1} de 6</span>

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { BottomNav } from './components/BottomNav'
-import { LogoMark } from './components/Logo'
+import { SiteFooter, SiteHeader } from './components/SiteChrome'
 import { Loading } from './components/ui'
 import { useRoute } from './lib/router'
 import { useApp } from './lib/store'
@@ -30,10 +30,10 @@ function Page({ parts }: { parts: string[] }) {
     case 'sembrar': return (
       <>
         <nav className="section-nav" aria-label="Herramientas de siembra">
-          <a href="#/sembrar" aria-current={a === 'sembrar' && !b ? 'page' : undefined}>Consulta de siembra</a>
+          <a href="#/sembrar" aria-current={a === 'sembrar' && b !== 'comparar' ? 'page' : undefined}>Consulta de siembra</a>
           <a href="#/sembrar/comparar" aria-current={a === 'escritorio' || b === 'comparar' ? 'page' : undefined}>Comparar condiciones</a>
         </nav>
-        {a === 'escritorio' || b === 'comparar' ? <Compare /> : <Sow />}
+        {a === 'escritorio' || b === 'comparar' ? <Compare /> : <Sow key={c ?? 'libre'} presetCrop={b === 'cultivo' ? c : undefined} />}
       </>
     )
     case 'clima': return <Weather />
@@ -83,21 +83,12 @@ export default function App() {
   return (
     <div className="min-h-screen pb-nav">
       <a href="#main" onClick={event => { event.preventDefault(); document.getElementById('main')?.focus() }} className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-30 focus:bg-papel focus:p-2">Ir al contenido</a>
-      <header className="site-header">
-        <div className="site-header-inner">
-          <a href="#/" className="flex items-center gap-2" aria-label="AgroBolivia, inicio">
-            <LogoMark size={36} /><span className="site-brand">AgroBolivia</span>
-          </a>
-          <BottomNav current={nav} desktop />
-          <a href={user ? '#/perfil' : '#/ingresar'} className="flex min-h-12 items-center rounded-full border-2 border-linea px-3 font-semibold text-bosque">
-            {user ? `${user.full_name.split(' ')[0]}` : 'Ingresar'}
-          </a>
-        </div>
-      </header>
+      <SiteHeader current={nav} />
       <OfflineBanner />
       <main id="main" tabIndex={-1} className={`site-main ${wide ? 'site-main-wide' : ''}`}>
         <Suspense fallback={<Loading />}>{user?.must_change_password ? <ForcedPassword /> : <Page parts={parts} />}</Suspense>
       </main>
+      <SiteFooter />
       <BottomNav current={nav} />
     </div>
   )

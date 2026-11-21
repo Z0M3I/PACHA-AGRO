@@ -6,7 +6,7 @@
 
 Prototipo funcional para hackatón universitaria. Integra los tracks **Comunicación** (comunidades, reuniones, avisos, reportes y WhatsApp) y **Educación** (lecciones breves para interpretar el clima y reducir riesgos).
 
-Portada en escritorio (diseño editorial sobrio, sin emoticones: tipografía serif, íconos de línea y artículos con ilustraciones propias):
+Portada en escritorio (tipografías Newsreader y Public Sans, íconos de línea propios, sin emoticones; cada bloque muestra datos reales con su fuente):
 
 ![Portada en escritorio](docs/img/inicio-escritorio.png)
 
@@ -105,7 +105,7 @@ cd frontend && npm test
 node e2e/run.cjs http://localhost:8000
 ```
 
-Resultados actuales: **98/98** backend, **7/7** unitarias frontend, **26/26** extremo a extremo (también contra PostgreSQL actualizado desde la versión anterior). GitHub Actions ejecuta backend, frontend y build en cada push a `main` (`.github/workflows/ci.yml`). Detalle en [docs/PRUEBAS.md](docs/PRUEBAS.md).
+Resultados actuales: **98/98** backend, **7/7** unitarias frontend, **27/27** extremo a extremo (también contra PostgreSQL actualizado desde la versión anterior). GitHub Actions ejecuta backend, frontend y build en cada push a `main` (`.github/workflows/ci.yml`). Detalle en [docs/PRUEBAS.md](docs/PRUEBAS.md).
 
 ## Documentación
 

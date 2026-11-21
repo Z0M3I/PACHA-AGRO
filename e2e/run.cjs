@@ -186,7 +186,7 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
       await p.addInitScript(() => localStorage.setItem('agb_municipality', 'or-challapata'))
       await p.goto(BASE)
       assert(await p.getByRole('link', { name: 'Escritorio', exact: true }).count() === 0, 'la portada ofrece un modo de dispositivo')
-      await p.getByRole('link', { name: /Comparar suelos/ }).click()
+      await p.getByRole('link', { name: /Comparar condiciones/ }).first().click()
       await p.getByText('Challapata, Oruro', { exact: true }).waitFor()
       const requests = []
       p.on('request', req => {
@@ -224,11 +224,11 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     const p = await newPage()
     await p.addInitScript(() => localStorage.setItem('agb_municipality', 'or-challapata'))
     await p.goto(`${BASE}/#/avisos`)
-    await p.getByText('Ejemplo: noches frías en el altiplano orureño').waitFor()
-    assert(await p.getByText('feria de semillas nativas en Cochabamba').count() === 0, 'muestra avisos de otra zona en "Mi zona"')
+    await p.locator('main').getByText('Ejemplo: noches frías en el altiplano orureño').waitFor()
+    assert(await p.locator('main').getByText('feria de semillas nativas en Cochabamba').count() === 0, 'muestra avisos de otra zona en "Mi zona"')
     assert(await p.getByText('no avisos oficiales', { exact: false }).count() > 0, 'falta aclaración de no oficial')
     await p.getByRole('tab', { name: /Todos/ }).click()
-    await p.getByText('feria de semillas nativas en Cochabamba').waitFor()
+    await p.locator('main').getByText('feria de semillas nativas en Cochabamba').waitFor()
     await p.screenshot({ path: `${OUT}/avisos.png`, fullPage: true })
   })
 
@@ -239,7 +239,7 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     const papa = p.getByRole('button', { name: /Papa/ })
     if ((await papa.getAttribute('aria-pressed')) !== 'true') { await papa.click(); await p.getByText('Guardado').waitFor() }
     await p.goto(`${BASE}/#/avisos`)
-    await p.getByText('Revisión preventiva de riego antes de la campaña de papa').waitFor()
+    await p.locator('main').getByText('Revisión preventiva de riego antes de la campaña de papa').waitFor()
     await p.goto(`${BASE}/#/perfil`); await papa.click(); await p.getByText('Guardado').waitFor()  // deja el estado como estaba
   })
 
@@ -270,11 +270,11 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await ed.getByText('SIMULADOR').waitFor()
     const pub = await newPage()
     await pub.addInitScript(() => localStorage.setItem('agb_municipality', 'pt-uyuni'))
-    await pub.goto(`${BASE}/#/avisos`); await pub.getByText(potosi).waitFor()
+    await pub.goto(`${BASE}/#/avisos`); await pub.locator('main').getByText(potosi).waitFor()
     const other = await newPage()
     await other.addInitScript(() => localStorage.setItem('agb_municipality', 'or-oruro'))
-    await other.goto(`${BASE}/#/avisos`); await other.getByText('Actualice sus cultivos de interés').waitFor()
-    assert(await other.getByText(potosi).count() === 0, 'aviso de Potosí visible en Oruro')
+    await other.goto(`${BASE}/#/avisos`); await other.locator('main').getByText('Actualice sus cultivos de interés').waitFor()
+    assert(await other.locator('main').getByText(potosi).count() === 0, 'aviso de Potosí visible en Oruro')
   })
 
   await test('Biblioteca: filtros por cultivo y tipo, detalle con fuente', async () => {
@@ -430,6 +430,23 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
       }
       await p.context().close()
     }
+  })
+
+  await test('Portada: acceso rápido por cultivo e indicadores con fuente', async () => {
+    const p = await newPage({ viewport: { width: 1280, height: 900 } })
+    await p.addInitScript(() => localStorage.setItem('agb_municipality', 'or-challapata'))
+    await p.goto(BASE)
+    const ind = p.getByTestId('indicators')
+    await ind.waitFor({ timeout: 60000 })
+    const t = await ind.innerText()
+    assert(/NASA POWER|Open-Meteo/.test(t), 'los indicadores no muestran su fuente')
+    assert(!/68 ?%|8\.5 hrs|3\.8 mm/.test(t), 'hay cifras fijas de ejemplo')
+    await p.locator('.sow-card').getByRole('link', { name: 'Papa' }).click()
+    await p.getByText('Consulta para papa').waitFor()
+    await btn(p, /^La Paz$/).click(); await btn(p, /El Alto/).click()
+    await p.getByText('¿Qué variedad de papa va a usar?').waitFor()  // se saltó la pregunta del cultivo
+    await btn(p, /Atrás/).click()
+    await p.getByText('¿Qué cultivo quiere sembrar?').waitFor()     // y se puede volver a ella
   })
 
   await browser.close()
