@@ -14,6 +14,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.data.catalog import get_municipality
 from app.db import get_db
 from app.deps import current_user, get_approved_community, membership_of, require_member, require_representative
@@ -58,6 +59,8 @@ def meeting_out(db: Session, mt: Meeting, user: User | None) -> dict:
 def list_communities(department_id: str | None = Query(None, max_length=40), municipality_id: str | None = Query(None, max_length=60),
                      db: Session = Depends(get_db)):
     q = select(Community).where(Community.status == "approved")
+    if not get_settings().seed_demo:
+        q = q.where(Community.is_demo.is_(False))
     if department_id:
         q = q.where(Community.department_id == department_id)
     if municipality_id:

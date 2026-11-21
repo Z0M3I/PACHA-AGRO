@@ -1,23 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DepartmentList, MunicipalityList, OptionButton } from '../components/LocationPicker'
 import { Button, Card, DataTag, ErrorBox, Loading, Notice, PageTitle, STATUS_UI } from '../components/ui'
 import { api } from '../lib/api'
-import { go } from '../lib/router'
 import { shareText, whatsappShareUrl } from '../lib/share'
 import { useApp } from '../lib/store'
 import type { Crop, Recommendation } from '../lib/types'
 
 type Answers = { dept?: string; muni?: string; crop?: string; variety?: string; moisture?: string; irrigation?: string }
-type Mode = 'real' | 'simulado'
 const STEPS = ['dept', 'muni', 'crop', 'variety', 'moisture', 'irrigation'] as const
 
-/** Caso de demostración para el jurado: productora de quinua en Challapata (Oruro).
- *  Usa el modo simulado del backend: no depende de los proveedores de clima. */
-export const DEMO_CASE: Required<Answers> = {
-  dept: 'oruro', muni: 'or-challapata', crop: 'quinua', variety: 'Pandela', moisture: 'si', irrigation: 'secano',
-}
-
-export default function Sow({ demo = false }: { demo?: boolean }) {
+export default function Sow() {
   const { findMunicipality, municipalityId, setMunicipalityId } = useApp()
   const saved = findMunicipality(municipalityId)
   const [a, setA] = useState<Answers>({})
@@ -26,7 +18,6 @@ export default function Sow({ demo = false }: { demo?: boolean }) {
   const [err, setErr] = useState<string | null>(null)
   const [result, setResult] = useState<Recommendation | null>(null)
   const [loading, setLoading] = useState(false)
-  const started = useRef(false)
 
   const loadCrops = () => { setErr(null); api<{ crops: Crop[] }>('/api/crops').then(d => setCrops(d.crops)).catch(e => setErr(e.message)) }
   useEffect(loadCrops, [])
@@ -34,28 +25,21 @@ export default function Sow({ demo = false }: { demo?: boolean }) {
   const set = (k: keyof Answers, v: string) => { setA(p => ({ ...p, [k]: v })); setStep(s => s + 1) }
   const useSaved = () => { if (saved) { setA({ dept: saved.department_id, muni: saved.id }); setStep(2) } }
 
-  const run = async (ans: Answers, m: Mode) => {
+  const submit = async (irrigation: string) => {
+    const ans = { ...a, irrigation }
     setA(ans); setLoading(true); setErr(null)
     try {
-      const r = await api<Recommendation>('/api/recommendations', { body: {
+      const r = await api<Recommendation>('/api/recommendations', { timeoutMs: 65000, body: {
         municipality_id: ans.muni, crop: ans.crop, variety: ans.variety === 'Otra / no sé' ? null : ans.variety,
-        soil_moisture: ans.moisture, irrigation: ans.irrigation, mode: m } })
+        soil_moisture: ans.moisture, irrigation: ans.irrigation, mode: 'real' } })
       setResult(r)
-      // El caso simulado no cambia la ubicación guardada de la persona.
-      if (ans.muni && !demo) setMunicipalityId(ans.muni)
+      if (ans.muni) setMunicipalityId(ans.muni)
     } catch (e) { setErr((e as Error).message) } finally { setLoading(false) }
   }
-  const submit = (irrigation: string) => run({ ...a, irrigation }, 'real')
+  const restart = () => { setA({}); setStep(0); setResult(null) }
 
-  useEffect(() => {
-    if (demo && !started.current) { started.current = true; run(DEMO_CASE, 'simulado') }
-  }, [demo])
-
-  const restart = () => { if (demo) { go('/sembrar') } else { setA({}); setStep(0); setResult(null) } }
-
-  if (loading) return <><PageTitle icon="🌱" title={demo ? 'Quinua en Challapata' : '¿Cuándo puedo sembrar?'} /><Loading text="Revisando clima y calendario…" /></>
-  if (result) return <Result r={result} onRestart={restart} onSimulate={() => run(a, 'simulado')} onReal={() => run(a, 'real')} />
-  if (demo) return <><PageTitle icon="🌱" title="Quinua en Challapata" />{err ? <ErrorBox message={err} onRetry={() => run(DEMO_CASE, 'simulado')} /> : <Loading />}</>
+  if (loading) return <><PageTitle icon="🌱" title="¿Cuándo puedo sembrar?" /><Loading text="Revisando clima y calendario…" /></>
+  if (result) return <Result r={result} onRestart={restart} />
 
   const crop = crops?.find(c => c.id === a.crop)
   const muni = findMunicipality(a.muni ?? null)
@@ -116,7 +100,7 @@ function Q({ n, text }: { n: number; text: string }) {
   return <h2 className="mb-3 text-[1.4rem] font-bold leading-snug"><span className="sr-only">Pregunta {n}: </span>{text}</h2>
 }
 
-function Result({ r, onRestart, onSimulate, onReal }: { r: Recommendation; onRestart: () => void; onSimulate: () => void; onReal: () => void }) {
+function Result({ r, onRestart }: { r: Recommendation; onRestart: () => void }) {
   const ui = STATUS_UI[r.status]
   const sim = r.mode === 'simulado'
   const noForecast = r.weather_summary && !r.weather_summary.forecast_available && r.mode === 'real'
@@ -134,7 +118,7 @@ function Result({ r, onRestart, onSimulate, onReal }: { r: Recommendation; onRes
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           {sim && <span data-testid="sim-badge" className="rounded-full border-2 border-dashed border-tierra bg-tierra-100 px-2 py-px text-[0.8rem] font-bold text-tierra">🧪 Caso simulado</span>}
           <span className="rounded-full bg-sol-50 px-2 py-0.5 text-[0.8rem] font-semibold text-sol-ink">⚠️ Orientación experimental</span>
-          {r.scenario_status === 'demo' && <span className="rounded-full bg-sol-50 px-2 py-0.5 text-[0.8rem] font-semibold text-sol-ink">Reglas de demostración</span>}
+          {r.scenario_status === 'demo' && <span className="rounded-full bg-sol-50 px-2 py-0.5 text-[0.8rem] font-semibold text-sol-ink">Reglas preliminares</span>}
         </div>
       </div>
 
@@ -177,11 +161,9 @@ function Result({ r, onRestart, onSimulate, onReal }: { r: Recommendation; onRes
 
       {noForecast && (
         <Notice tone="warn">
-          <strong>Sin pronóstico ahora.</strong> {r.weather_summary?.forecast_error} Usamos el historial de NASA POWER.
-          <div className="mt-2"><Button variant="secondary" onClick={onSimulate}>Ver caso simulado</Button></div>
+          <strong>Sin pronóstico ahora.</strong> {r.weather_summary?.forecast_error} {r.weather_summary?.recent_source ? 'La consulta incluye datos históricos disponibles.' : 'Revise los criterios que tienen datos disponibles.'}
         </Notice>
       )}
-      {sim && <Button variant="secondary" className="w-full" onClick={onReal}>Consultar con datos reales</Button>}
 
       {r.criteria.length > 0 && (
         <section aria-labelledby="todos">

@@ -36,11 +36,11 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await btn(p, /^Ingresar$/).click(); await p.waitForSelector('text=Comunidad Demo Challapata')
   }
 
-  await test('Inicio: las 4 acciones principales son visibles sin desplazarse (360×740)', async () => {
+  await test('Inicio: acceso a siembra y clima visible sin desplazarse (360×740)', async () => {
     const p = await newPage()
     await p.goto(BASE)
-    const navTop = (await p.locator('nav[aria-label="Navegación principal"]').boundingBox()).y
-    for (const t of ['¿Cuándo puedo sembrar?', '¿Cómo estará el clima?', 'Mi comunidad', 'Consultar por WhatsApp']) {
+    const navTop = (await p.locator('.site-nav-mobile').boundingBox()).y
+    for (const t of ['Consultar condiciones de siembra', 'Elegir municipio']) {
       const b = await p.getByRole('link', { name: new RegExp(t.replace(/[?¿]/g, '.')) }).first().boundingBox()
       assert(b && b.y + b.height * 0.5 < navTop, `"${t}" no es visible sobre la navegación`)
     }
@@ -53,9 +53,12 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await p.goto(BASE)
     const t0 = Date.now(); let taps = 0
     const tap = async (l) => { await l.click(); taps++ }
-    await tap(p.getByRole('link', { name: /Cuándo puedo sembrar/ }).first())
+    await tap(p.getByRole('link', { name: /Consultar condiciones de siembra/ }).first())
     for (const t of [/^Oruro$/, /Challapata/, /Quinua/, /Pandela/, /Sí, está húmedo/, /Depende de la lluvia/]) await tap(btn(p, t))
     await p.getByTestId('main-action').waitFor()
+    const action = await p.getByTestId('main-action').boundingBox()
+    const factors = await p.getByRole('heading', { name: 'Todos los factores' }).boundingBox()
+    assert(action.y < factors.y, 'la acción principal debe preceder a los criterios')
     const status = await p.locator('section[aria-live]').first().innerText()
     assert(/favorables|precaución|desfavorables|insuficiente/.test(status), 'sin semáforo')
     assert(await p.locator('text=Fuente:').count() > 0, 'no muestra fuentes')
@@ -67,50 +70,6 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     return `${taps} toques, ${(Date.now() - t0) / 1000}s automatizado; resultado: ${status.split('\n').find(x => x.trim().length > 3)}`
   })
 
-  await test('Demo: «Probar con quinua en Challapata» sin cuenta ni formulario, etiquetado como simulado', async () => {
-    const p = await newPage()
-    await p.goto(BASE)
-    const link = p.getByTestId('demo-case')
-    assert((await link.innerText()).includes('Caso simulado'), 'el acceso no dice "Caso simulado"')
-    await link.click()
-    await p.getByTestId('main-action').waitFor()
-    assert(p.url().endsWith('#/sembrar/demo'), 'ruta inesperada ' + p.url())
-    assert(await p.getByTestId('sim-badge').isVisible(), 'falta la etiqueta "Caso simulado" en el resultado')
-    const head = (await p.locator('main').innerText()).toLowerCase()  // innerText aplica text-transform
-    for (const t of ['Quinua en Challapata', 'Pandela', 'Caso simulado', 'Orientación experimental', 'Lo que más pesa', 'Qué hacer ahora'])
-      assert(head.includes(t.toLowerCase()), `falta "${t}" en el resultado`)
-    // En 360 px: la acción principal está en la primera pantalla y antes de la lista de criterios
-    const act = await p.getByTestId('main-action').boundingBox()
-    const list = await p.getByRole('heading', { name: 'Todos los factores' }).boundingBox()
-    const navTop = (await p.locator('nav[aria-label="Navegación principal"]').boundingBox()).y
-    assert(act.y + act.height <= navTop, `acción principal fuera de la primera pantalla (${act.y + act.height} > ${navTop})`)
-    assert(act.y < list.y, 'la acción principal no aparece antes de los criterios')
-    const msg = decodeURIComponent((await p.getByTestId('share-whatsapp').getAttribute('href')).split('text=')[1])
-    for (const t of ['Quinua en Challapata', 'Resultado:', 'Caso simulado', 'Orientación experimental'])
-      assert(msg.includes(t), `mensaje sin "${t}": ${msg}`)
-    await p.getByText('Ver el mensaje que se enviará').click()
-    assert((await p.getByTestId('share-preview').innerText()) === msg, 'la vista previa no coincide con el mensaje enviado')
-    await p.screenshot({ path: `${OUT}/demo-challapata-360.png` })
-    // Reproducible: dos consultas seguidas dan el mismo resultado
-    const r1 = await p.evaluate(() => fetch('/api/recommendations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ municipality_id: 'or-challapata', crop: 'quinua', variety: 'Pandela', soil_moisture: 'si', irrigation: 'secano', mode: 'simulado' }) }).then(r => r.json()))
-    const r2 = await p.evaluate(() => fetch('/api/recommendations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ municipality_id: 'or-challapata', crop: 'quinua', variety: 'Pandela', soil_moisture: 'si', irrigation: 'secano', mode: 'simulado' }) }).then(r => r.json()))
-    assert(r1.status === r2.status && r1.key_factor.id === r2.key_factor.id && r1.main_action === r2.main_action, 'resultado no reproducible')
-    // Desde la demo se puede pasar a datos reales con las mismas respuestas
-    await btn(p, /Consultar con datos reales/).click()
-    await p.getByTestId('main-action').waitFor()
-    assert(await p.getByTestId('sim-badge').count() === 0, 'tras pasar a datos reales sigue la etiqueta "Caso simulado"')
-    const realMsg = decodeURIComponent((await p.getByTestId('share-whatsapp').getAttribute('href')).split('text=')[1])
-    assert(!realMsg.includes('Caso simulado') && realMsg.includes('Orientación experimental'), 'mensaje real incorrecto')
-    return `${r1.status} · factor: ${r1.key_factor.label} · acción: ${r1.main_action}`
-  })
-
-  await test('Demo: el caso simulado no cambia la ubicación guardada', async () => {
-    const p = await newPage()
-    await p.addInitScript(() => { if (!sessionStorage.getItem('x')) { localStorage.setItem('agb_municipality', 'lp-el-alto'); sessionStorage.setItem('x', '1') } })
-    await p.goto(`${BASE}/#/sembrar/demo`); await p.getByTestId('main-action').waitFor()
-    assert(await p.evaluate(() => localStorage.getItem('agb_municipality')) === 'lp-el-alto', 'cambió la ubicación')
-  })
-
   await test('Siembra: cultivo sin reglas muestra "Información insuficiente" sin recomendar', async () => {
     const p = await newPage()
     await p.goto(`${BASE}/#/sembrar`)
@@ -120,9 +79,9 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     assert(await p.locator('text=Faltan datos').count() === 1, 'debe decir que faltan datos')
   })
 
-  await test('Clima: sin pronóstico se explica el problema y se ofrece demostración SIMULADA', async () => {
+  await test('Clima: sin pronóstico se explica el problema y se puede reintentar', async () => {
     const p = await newPage()
-    await p.route('**/api/weather?*mode=real', async route => {
+    await p.route('**/api/weather?*', async route => {
       const r = await route.fetch(); const j = await r.json()
       j.forecast = { ...j.forecast, available: false, daily: [], error: 'Prueba: servicio de pronóstico caído.' }
       await route.fulfill({ response: r, json: j })
@@ -130,10 +89,8 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await p.addInitScript(() => localStorage.setItem('agb_municipality', 'or-oruro'))
     await p.goto(`${BASE}/#/clima`)
     await p.waitForSelector('text=No hay pronóstico disponible')
-    await btn(p, /Ver demostración/).click()
-    await btn(p, /Volver a datos reales/).waitFor()  // solo existe en modo simulado (evita carrera con el aviso previo)
-    assert(await p.locator('text=SIMULADO').count() > 0, 'falta etiqueta SIMULADO')
-    await p.screenshot({ path: `${OUT}/clima-simulado.png`, fullPage: true })
+    assert(await btn(p, /Intentar de nuevo/).isVisible(), 'falta reintento')
+    assert(await btn(p, /Ver demostración/).count() === 0, 'se ofrece clima simulado')
   })
 
   await test('Clima: error de red muestra mensaje comprensible y botón de reintento', async () => {
@@ -209,12 +166,35 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
   await test('Adaptación móvil: sin desplazamiento horizontal en todas las pantallas (320 px)', async () => {
     const p = await newPage({ viewport: { width: 320, height: 640 }, isMobile: true })
     const bad = []
-    for (const r of ['', 'sembrar', 'clima', 'comunidad', 'whatsapp', 'aprender', 'aprender/granizo', 'ingresar', 'registro']) {
+    for (const r of ['', 'sembrar', 'sembrar/comparar', 'clima', 'comunidad', 'whatsapp', 'aprender', 'aprender/granizo', 'ingresar', 'registro']) {
       await p.goto(`${BASE}/#/${r}`); await p.waitForTimeout(600)
       const w = await p.evaluate(() => document.documentElement.scrollWidth)
       if (w > 320) bad.push(`${r || 'inicio'}:${w}`)
     }
     assert(bad.length === 0, `desborde en ${bad.join(', ')}`)
+  })
+
+  await test('Comparador: consulta real y formato adaptable en móvil, tableta y escritorio', async () => {
+    for (const width of [360, 768, 1440]) {
+      const p = await newPage({ viewport: { width, height: 900 } })
+      await p.addInitScript(() => localStorage.setItem('agb_municipality', 'or-challapata'))
+      await p.goto(BASE)
+      assert(await p.getByRole('link', { name: 'Escritorio', exact: true }).count() === 0, 'la portada ofrece un modo de dispositivo')
+      await p.getByRole('link', { name: /Comparar suelos/ }).click()
+      await p.getByText('Challapata, Oruro', { exact: true }).waitFor()
+      const requests = []
+      p.on('request', req => {
+        if (req.url().endsWith('/api/recommendations') && req.method() === 'POST') requests.push(req.postDataJSON())
+      })
+      await btn(p, 'Comparar escenarios').click()
+      await p.getByRole('table').waitFor()
+      assert(requests.length === 2 && requests.every(r => r.mode === 'real' && r.municipality_id === 'or-challapata'), 'la consulta no usó el municipio y modo seleccionados')
+      const cards = await p.locator('.compare-result').all()
+      const [a, b] = await Promise.all(cards.map(card => card.boundingBox()))
+      assert(width === 360 ? b.y > a.y : b.x > a.x, `distribución incorrecta a ${width}px`)
+      assert(await p.evaluate(() => document.documentElement.scrollWidth) === width, `desborde a ${width}px`)
+      await p.context().close()
+    }
   })
 
   await test('Conexión lenta (≈400 kbps, 400 ms de latencia): inicio usable', async () => {
@@ -226,7 +206,7 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     let bytes = 0
     p.on('response', async r => { const l = Number(r.headers()['content-length'] || 0); bytes += l })
     const t0 = Date.now()
-    await p.goto(BASE); await p.getByRole('link', { name: /Cuándo puedo sembrar/ }).first().waitFor()
+    await p.goto(BASE); await p.getByRole('link', { name: /Consultar condiciones de siembra/ }).first().waitFor()
     const ms = Date.now() - t0
     assert(ms < 8000, `tardó ${ms} ms`)
     return `acciones visibles en ${(ms / 1000).toFixed(1)} s`

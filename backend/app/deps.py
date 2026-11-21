@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.security import decode_token
 from app.db import get_db
 from app.models import Community, Membership, User
@@ -15,7 +16,7 @@ def optional_user(request: Request, db: Session = Depends(get_db)) -> User | Non
     if uid is None:
         return None
     user = db.get(User, uid)
-    return user if user and user.is_active else None
+    return user if user and user.is_active and (get_settings().seed_demo or not user.is_demo) else None
 
 
 def current_user(user: User | None = Depends(optional_user)) -> User:
@@ -32,7 +33,7 @@ def admin_user(user: User = Depends(current_user)) -> User:
 
 def get_approved_community(db: Session, community_id: int) -> Community:
     c = db.get(Community, community_id)
-    if c is None or c.status != "approved":
+    if c is None or c.status != "approved" or (c.is_demo and not get_settings().seed_demo):
         raise HTTPException(status_code=404, detail="Comunidad no encontrada.")
     return c
 

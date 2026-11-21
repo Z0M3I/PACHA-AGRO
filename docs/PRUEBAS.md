@@ -1,24 +1,23 @@
 # Pruebas y validación
 
-Ejecutadas el 21-11-2026. Todas reproducibles sin conexión a Internet (backend usa fixtures; e2e usa el servidor local).
+Ejecutadas el 21-11-2026. El backend usa fixtures. La suite de navegador usa el servidor local y consulta las fuentes meteorológicas disponibles.
 
 | Suite | Comando | Resultado |
 |---|---|---|
 | Backend (pytest) | `cd backend && .venv/bin/python -m pytest` | **61/61** aprobadas |
 | Frontend unitarias (vitest) | `cd frontend && npm test` | **7/7** aprobadas |
-| Extremo a extremo (Playwright, Chromium, celular 360×740) | `node e2e/run.cjs http://localhost:8000` | **15/15** aprobadas (servidor recién iniciado) |
+| Extremo a extremo (Playwright, Chromium, móvil, tableta y escritorio) | `node e2e/run.cjs http://localhost:8000` | **14/14** aprobadas (servidor recién iniciado) |
 | Tipos TypeScript + compilación | `cd frontend && npm run build` | Sin errores |
 
 ## Casos de prueba por área
 
 | Área | Caso | Resultado esperado | Prueba |
 |---|---|---|---|
-| Navegación | Las 4 acciones principales se ven sin desplazarse en 360×740 | Visibles sobre la barra inferior | e2e #1 |
-| Navegación | Sin desplazamiento horizontal en 9 pantallas a 320 px | `scrollWidth ≤ 320` | e2e #12 |
+| Navegación | Los accesos a siembra y clima se ven sin desplazarse en 360×740 | Visibles sobre la barra inferior | e2e #1 |
+| Navegación | Sin desplazamiento horizontal en 10 pantallas a 320 px | `scrollWidth ≤ 320` | e2e #12 |
 | Recomendación | Consulta completa sin registro | 7 toques hasta el resultado, con semáforo y fuentes | e2e #2 |
-| Demo | «Probar con quinua en Challapata» desde el inicio, sin cuenta ni formulario | Resultado con etiqueta «Caso simulado», reproducible, sin cambiar la ubicación guardada | e2e |
-| Demo | En 360×740 la acción principal está en la primera pantalla y antes de «Todos los factores» | Sí | e2e |
-| Demo | Desde el caso simulado se pasa a datos reales | Desaparece la etiqueta de simulación | e2e |
+| Comparador | Consulta real en 360, 768 y 1440 px | Resultados apilados en móvil y en columnas en pantallas amplias | e2e #13 |
+| Recomendación | La acción principal aparece antes de los criterios | Sí | e2e #2 |
 | Compartir | Mensaje con cultivo, municipio, resultado, «Orientación experimental» y, si aplica, «Caso simulado»; vista previa = mensaje enviado | Ambos modos verificados | `share.test.ts`, e2e |
 | Recomendación | Factor decisivo: rojo > amarillo, crítico antes que no crítico, sin datos no crítico no decide; acción principal por factor; explicación de confianza | Sí | `test_engine` (10 casos) |
 | Recomendación | Heladas −4 °C / −1 °C / sin helada | 🔴 / 🟡 / 🟢 con explicación que cita la temperatura | `test_engine` |
@@ -29,7 +28,7 @@ Ejecutadas el 21-11-2026. Todas reproducibles sin conexión a Internet (backend 
 | Recomendación | Reporte comunitario de granizo influye | Criterio "tormenta" con `data_kind=comunidad` y texto "no es aviso oficial" | `test_api` |
 | Datos faltantes | Open-Meteo con límite diario | Error en español, riesgo por climatología, confianza baja | `test_weather`, `test_engine` |
 | Datos faltantes | Todas las fuentes caídas | Riesgo "desconocido", ⚪ | `test_weather` |
-| Datos faltantes | Interfaz sin pronóstico | Mensaje claro + botón "Ver demostración" etiquetado SIMULADO | e2e #4 |
+| Datos faltantes | Interfaz sin pronóstico | Mensaje claro y botón «Intentar de nuevo» | e2e #4 |
 | Datos faltantes | Sin conexión al backend | "No hay conexión… Intente de nuevo" + botón | e2e #5 |
 | Datos | Días `-999` de NASA POWER descartados; caché evita llamadas repetidas | Sí | `test_weather` |
 | Registro | Nombre corto, teléfono inválido, clave corta | 422 con mensaje por campo | `test_api`, e2e #6 |

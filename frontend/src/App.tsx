@@ -7,7 +7,7 @@ import { useApp } from './lib/store'
 import Home from './pages/Home'
 import Sow from './pages/Sow'
 
-const Desktop = lazy(() => import('./pages/Desktop'))
+const Compare = lazy(() => import('./pages/Compare'))
 const Weather = lazy(() => import('./pages/Weather'))
 const CommunityHome = lazy(() => import('./pages/Community'))
 const CommunityDetail = lazy(() => import('./pages/CommunityDetail'))
@@ -22,7 +22,16 @@ function Page({ parts }: { parts: string[] }) {
   const [a, b] = parts
   switch (a) {
     case undefined: return <Home />
-    case 'sembrar': return <Sow key={b ?? 'form'} demo={b === 'demo'} />
+    case 'escritorio':
+    case 'sembrar': return (
+      <>
+        <nav className="section-nav" aria-label="Herramientas de siembra">
+          <a href="#/sembrar" aria-current={a === 'sembrar' && !b ? 'page' : undefined}>Consulta de siembra</a>
+          <a href="#/sembrar/comparar" aria-current={a === 'escritorio' || b === 'comparar' ? 'page' : undefined}>Comparar condiciones</a>
+        </nav>
+        {a === 'escritorio' || b === 'comparar' ? <Compare /> : <Sow />}
+      </>
+    )
     case 'clima': return <Weather />
     case 'comunidad': return b && /^\d+$/.test(b) ? <CommunityDetail id={Number(b)} /> : <CommunityHome />
     case 'whatsapp': return <WhatsApp />
@@ -38,24 +47,24 @@ function Page({ parts }: { parts: string[] }) {
 export default function App() {
   const parts = useRoute()
   const { user } = useApp()
-  if (parts[0] === 'escritorio') return <Suspense fallback={<Loading />}><Desktop /></Suspense>
-  const nav = ['', 'sembrar', 'clima', 'comunidad', 'aprender'].includes(parts[0] ?? '') ? (parts[0] ?? '') : parts[0] === 'whatsapp' ? '' : 'comunidad'
+  const section = parts[0] ?? ''
+  const nav = section === 'escritorio' ? 'sembrar' : section
+  const wide = ['', 'clima', 'escritorio'].includes(section) || parts[1] === 'comparar'
   return (
     <div className="min-h-screen pb-nav">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-30 focus:bg-papel focus:p-2">Ir al contenido</a>
-      <header className="sticky top-0 z-10 bg-papel/95 backdrop-blur">
-        <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-2">
+      <a href="#main" onClick={event => { event.preventDefault(); document.getElementById('main')?.focus() }} className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-30 focus:bg-papel focus:p-2">Ir al contenido</a>
+      <header className="site-header">
+        <div className="site-header-inner">
           <a href="#/" className="flex items-center gap-2" aria-label="AgroBolivia, inicio">
             <LogoMark size={36} /><span className="font-display text-xl font-bold text-bosque">AgroBolivia</span>
           </a>
-          <a href="#/escritorio" className="hidden font-semibold text-bosque underline lg:inline">Escritorio</a>
+          <BottomNav current={nav} desktop />
           <a href={user ? '#/perfil' : '#/ingresar'} className="flex min-h-12 items-center rounded-full border-2 border-linea px-3 font-semibold text-bosque">
-            {user ? `👤 ${user.full_name.split(' ')[0]}` : 'Ingresar'}
+            {user ? `${user.full_name.split(' ')[0]}` : 'Ingresar'}
           </a>
         </div>
-        <div className="aguayo" aria-hidden="true" />
       </header>
-      <main id="main" className="mx-auto max-w-xl px-4 pt-4">
+      <main id="main" tabIndex={-1} className={`site-main ${wide ? 'site-main-wide' : ''}`}>
         <Suspense fallback={<Loading />}><Page parts={parts} /></Suspense>
       </main>
       <BottomNav current={nav} />
