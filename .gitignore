@@ -10,3 +10,4 @@ node_modules/
 frontend/dist/
 # Pruebas / capturas temporales
 e2e/output/
+frontend/tsconfig.tsbuildinfo
