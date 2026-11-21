@@ -1,4 +1,63 @@
-# Despliegue en Vercel
+# Despliegue
+
+Dos opciones configuradas en el repositorio. **Recomendada: Render** (servidor continuo, sin cambios de arquitectura).
+
+| | Render (recomendado) | Vercel |
+|---|---|---|
+| Cómo corre el backend | Servidor normal (contenedor Docker) | Funciones *serverless* |
+| Caché del clima, chat simulado, límites de intentos | Se mantienen mientras el servidor esté encendido | Se reinician con cada instancia |
+| Base de datos | PostgreSQL creada por el Blueprint | PostgreSQL de Neon (Marketplace) |
+| Archivos | `Dockerfile`, `render.yaml` | `vercel.json`, `api/index.py`, `requirements.txt` |
+
+---
+
+# Render (recomendado)
+
+El archivo `render.yaml` (Blueprint) crea:
+- **agrobolivia**: servicio web que construye el `Dockerfile` (compila el frontend y arranca FastAPI, que sirve web + API).
+- **agrobolivia-db**: PostgreSQL. Su URL se pasa sola como `DATABASE_URL`.
+- `SECRET_KEY` se genera automáticamente.
+
+## Pasos
+
+1. Asegúrese de que el código esté en la rama **`main`** (el Blueprint despliega `main`).
+2. Entre a <https://render.com> e inicie sesión con GitHub.
+3. **New + → Blueprint** → elija el repositorio `mvjg2005/PACHA-AGRO` → Render lee `render.yaml`.
+4. Le pedirá los valores que no están en el archivo:
+   - `ADMIN_PHONE`: su celular con prefijo, ej. `+59171234567`
+   - `ADMIN_PASSWORD`: una clave segura
+5. **Apply / Deploy Blueprint**. La primera construcción tarda unos minutos.
+6. Abra la URL `https://agrobolivia-XXXX.onrender.com`. Verifique `…/api/health` → `{"status":"ok"}`.
+7. Cada `git push` a `main` vuelve a desplegar automáticamente.
+
+## Plan gratuito: tenga en cuenta
+
+- El servicio **se duerme tras unos 15 minutos sin visitas**; la siguiente visita tarda ~1 minuto en despertar. **Ábralo antes de presentar.**
+- La base PostgreSQL gratuita de Render **vence después de un tiempo** (según la política actual, unos 30 días). Para la hackatón alcanza; luego pase a un plan pagado o a Neon. Verifique las condiciones vigentes en render.com/pricing.
+- Open-Meteo gratuito cuenta consultas por IP; si se agota, la app usa NASA POWER y ofrece la demostración simulada.
+
+## Verificado antes de publicar
+
+- Imagen Docker construida (288 MB) y ejecutada como Render: variable `PORT=10000`, PostgreSQL 16, usuario sin privilegios.
+- Suite e2e completa contra el contenedor: **13/13**.
+- Detrás del proxy, los límites de intentos cuentan por IP real del visitante (`--proxy-headers`): 10 registros permitidos por IP y hora, el 11.º bloqueado, otra IP sigue funcionando.
+- No se hizo un despliegue real en Render desde el entorno de desarrollo (requiere su cuenta).
+
+## Ejecutar la misma imagen en su computadora
+
+```bash
+docker build -t agrobolivia .
+```
+
+```bash
+docker run -p 8000:8000 -e SECRET_KEY=algo-largo -e ADMIN_PASSWORD=admin12345 agrobolivia
+```
+
+Luego abra <http://localhost:8000>.
+
+---
+
+# Vercel (alternativa)
 
 Arquitectura en Vercel:
 - **Frontend** (`frontend/dist`) → CDN de Vercel.
