@@ -47,7 +47,17 @@ export default function Home() {
         <span><span className="block text-xl font-bold text-bosque">Aprendamos sobre nuestro campo</span>
           <span className="text-musgo">Heladas, granizo, humedad del suelo y más. Lecciones de 2 minutos.</span></span>
       </a>
-      <p className="mt-5 text-center text-sm text-musgo">Prototipo para hackatón. Las orientaciones no reemplazan a un técnico agrícola ni a los avisos oficiales del SENAMHI.</p>
+      <a href="#/avisos" className="mt-3 flex items-center gap-4 rounded-2xl border border-linea bg-papel p-4">
+        <span className="text-4xl" aria-hidden="true">📢</span>
+        <span><span className="block text-xl font-bold text-bosque">Avisos para el campo</span>
+          <span className="text-musgo">Avisos por departamento, municipio o cultivo (no oficiales).</span></span>
+      </a>
+      <nav aria-label="Información" className="mt-5 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[0.95rem] font-semibold">
+        <a className="min-h-10 py-2 text-bosque underline underline-offset-4" href="#/cobertura">Cobertura nacional</a>
+        <a className="min-h-10 py-2 text-bosque underline underline-offset-4" href="#/privacidad">Privacidad</a>
+        <a className="min-h-10 py-2 text-bosque underline underline-offset-4" href="#/terminos">Términos</a>
+      </nav>
+      <p className="mt-2 text-center text-sm text-musgo">Prototipo para hackatón. Las orientaciones no reemplazan a un técnico agrícola ni a los avisos oficiales del SENAMHI.</p>
     </div>
   )
 }

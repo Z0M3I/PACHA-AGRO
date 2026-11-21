@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.ratelimit import client_key, login_limiter, register_limiter
 from app.core.security import create_token, hash_password, verify_password
-from app.data.catalog import get_municipality
+from app.data.catalog import crops_config, get_municipality
 from app.db import get_db
 from app.deps import current_user
 from app.models import User
@@ -53,6 +53,12 @@ def update_me(body: ProfileUpdate, user: User = Depends(current_user), db: Sessi
         if not get_municipality(body.default_municipality_id):
             raise HTTPException(422, "Municipio no válido.")
         user.default_municipality_id = body.default_municipality_id
+    if body.crops is not None:
+        valid = set(crops_config()["crops"])
+        bad = [c for c in body.crops if c not in valid]
+        if bad:
+            raise HTTPException(422, f"Cultivo no válido: {', '.join(bad)}")
+        user.crop_interests = ",".join(dict.fromkeys(body.crops))
     if body.whatsapp_opt_in is not None:
         user.whatsapp_opt_in = body.whatsapp_opt_in
         user.whatsapp_opt_in_at = datetime.now() if body.whatsapp_opt_in else None

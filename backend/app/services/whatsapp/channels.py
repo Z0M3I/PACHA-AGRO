@@ -23,11 +23,11 @@ class SimulatorChannel:
     name = "simulador"
     connected = False
 
-    def send_text(self, to: str, text: str) -> str:
-        return "simulado"
+    def send_text(self, to: str, text: str) -> dict:
+        return {"status": "simulado", "id": None}
 
-    def send_template(self, to: str, template: str, params: list[str]) -> str:
-        return "simulado"
+    def send_template(self, to: str, template: str, params: list[str]) -> dict:
+        return {"status": "simulado", "id": None}
 
 
 class CloudAPIChannel:
@@ -39,18 +39,25 @@ class CloudAPIChannel:
         self.url = f"https://graph.facebook.com/{s.whatsapp_api_version}/{s.whatsapp_phone_number_id}/messages"
         self.headers = {"Authorization": f"Bearer {s.whatsapp_token}"}
 
-    def _post(self, payload: dict) -> str:
+    def _post(self, payload: dict) -> dict:
+        """Devuelve el estado y el id de mensaje de Meta (para cruzarlo luego con los estados del webhook)."""
         try:
             r = httpx.post(self.url, json=payload, headers=self.headers, timeout=15)
-            return "enviado" if r.status_code == 200 else "error"
         except httpx.HTTPError:
             logger.exception("Error enviando a WhatsApp Cloud API")
-            return "error"
+            return {"status": "fallido", "id": None}
+        if r.status_code != 200:
+            return {"status": "fallido", "id": None}
+        try:
+            mid = r.json()["messages"][0]["id"]
+        except (ValueError, KeyError, IndexError):
+            mid = None
+        return {"status": "enviado", "id": mid}
 
-    def send_text(self, to: str, text: str) -> str:
+    def send_text(self, to: str, text: str) -> dict:
         return self._post({"messaging_product": "whatsapp", "to": to.lstrip("+"), "type": "text", "text": {"body": text[:4096]}})
 
-    def send_template(self, to: str, template: str, params: list[str]) -> str:
+    def send_template(self, to: str, template: str, params: list[str]) -> dict:
         return self._post({"messaging_product": "whatsapp", "to": to.lstrip("+"), "type": "template",
                            "template": {"name": template, "language": {"code": "es"},
                                         "components": [{"type": "body", "parameters": [{"type": "text", "text": p} for p in params]}]}})

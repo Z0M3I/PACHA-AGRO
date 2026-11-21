@@ -239,14 +239,15 @@ def remind(mid: int, user: User = Depends(current_user), db: Session = Depends(g
     c = db.get(Community, mt.community_id)
     recipients = db.scalars(select(User).join(Membership, Membership.user_id == User.id).where(
         Membership.community_id == mt.community_id, Membership.status == "approved", User.whatsapp_opt_in.is_(True))).all()
+    from app.services.whatsapp.templates import meeting_template
+
     channel = get_channel()
-    body = (f"📅 Recordatorio AgroBolivia\nReunión: {mt.title}\nComunidad: {c.name}\n"
-            f"Día: {mt.starts_at:%d/%m/%Y} a las {mt.starts_at:%H:%M}\nLugar: {mt.place}\n"
-            "¿Va a asistir? Responda SI o NO.")
+    tpl = meeting_template(mt.title, c.name, f"{mt.starts_at:%d/%m/%Y} a las {mt.starts_at:%H:%M}", mt.place)
     sent = 0
     for r in recipients:
-        status = channel.send_template(r.phone, "recordatorio_reunion", [mt.title, c.name, f"{mt.starts_at:%d/%m %H:%M}", mt.place])
-        db.add(OutboundMessage(user_id=r.id, template="recordatorio_reunion", body=body, meeting_id=mt.id, channel=channel.name, status=status))
+        res = channel.send_template(r.phone, tpl["name"], tpl["parameters"])
+        db.add(OutboundMessage(user_id=r.id, template=tpl["name"], body=tpl["preview"], meeting_id=mt.id,
+                               channel=channel.name, status=res["status"], wa_message_id=res.get("id")))
         sent += 1
     log(db, "recordatorio", f"{mt.title}: {sent} destinatarios ({channel.name})", user.id, mt.community_id)
     db.commit()

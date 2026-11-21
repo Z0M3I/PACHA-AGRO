@@ -62,7 +62,9 @@ Inicio
 │                               → Mis comunidades → Buscar y unirme | Registrar comunidad
 │                               → Comunidad: Reuniones · Avisos · Reportes · Historial · Solicitudes*
 ├── 💬 Consultar por WhatsApp  → Simulador de chat
-└── 📚 Aprendamos              → Lista → Lección (puntos, pregunta, fuentes)
+├── 📚 Aprendamos              → Lecciones (puntos, pregunta, fuentes) | Biblioteca (filtros → recurso)
+├── 📢 Avisos para el campo    → Mi zona | Todos (también desde Clima)
+└── Pie del inicio            → Cobertura nacional · Privacidad · Términos
 Barra inferior fija: Inicio · Sembrar · Clima · Comunidad · Aprender
 Encabezado: Ingresar / Perfil (consentimiento WhatsApp, salir, Admin*)
 * solo representantes / administradores
@@ -79,12 +81,14 @@ Encabezado: Ingresar / Perfil (consentimiento WhatsApp, salir, Admin*)
 
 ## 6. Modelo de datos
 
-`users` (rol global farmer/admin, consentimiento WhatsApp) · `communities` (pendiente/aprobada) · `memberships` (rol por comunidad: member/representative; estado) · `meetings` · `attendance` · `notices` · `observations` (comunitarias, con estado de revisión) · `activity_log` · `outbound_messages` (recordatorios; `simulado` mientras no haya canal real).
+`users` (rol global farmer/editor/admin, consentimiento WhatsApp, cultivos de interés) · `regional_notices` (alcance nacional/departamento/municipio/cultivo, vigencia) · `communities` (pendiente/aprobada) · `memberships` (rol por comunidad: member/representative; estado) · `meetings` · `attendance` · `notices` · `observations` (comunitarias, con estado de revisión) · `activity_log` · `outbound_messages` (recordatorios; `simulado` mientras no haya canal real).
 
 ## 7. Seguridad
 
 - Claves con PBKDF2-SHA256 (240 000 iteraciones, sal aleatoria); tokens JWT firmados con `SECRET_KEY` del entorno.
 - Límite de intentos de inicio de sesión, registro, chat y reportes.
+- Roles globales: agricultor, **editor de contenido** (publica avisos regionales) y administrador. La API nunca otorga el rol de administrador (solo viene del entorno).
+- Migración mínima idempotente (`ensure_columns`) para bases ya desplegadas; probada contra PostgreSQL creado con la versión anterior.
 - Autorización en el servidor: comunidad aprobada por admin; representante asignado por admin; nadie aprueba su propia solicitud; solo miembros aprobados ven contenido.
 - Validación de entradas con Pydantic (teléfono boliviano, longitudes, valores permitidos); mensajes de error en español.
 - Webhook de WhatsApp con verificación de firma `X-Hub-Signature-256`.

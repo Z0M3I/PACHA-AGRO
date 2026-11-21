@@ -15,7 +15,8 @@ from app.services.weather.service import get_weather
 
 EMOJI = {"verde": "🟢", "amarillo": "🟡", "rojo": "🔴", "gris": "⚪"}
 MENU = ("👋 Hola, soy el asistente de AgroBolivia.\nEscriba un número o su pregunta:\n"
-        "1️⃣ ¿Cuándo puedo sembrar?\n2️⃣ ¿Hay riesgo de helada?\n3️⃣ Reunión de mi comunidad\n4️⃣ Avisar granizo o helada\n"
+        "1️⃣ ¿Cuándo puedo sembrar?\n2️⃣ ¿Hay riesgo de helada? (o CLIMA <municipio>)\n3️⃣ Reunión de mi comunidad\n4️⃣ Avisar granizo o helada\n"
+        "5️⃣ AVISOS de mi zona\n6️⃣ GUIAS para aprender\nCULTIVOS: ver mis cultivos\n"
         "Escriba BAJA para no recibir más mensajes.")
 
 # Estado de conversación en memoria (prototipo). En producción: Redis o tabla con expiración.
@@ -77,6 +78,9 @@ def handle(db: Session, key: str, text: str, user: User | None, mode: str = "rea
         it = {"intent": pending["type"], "crop": pending.get("crop"), "tomorrow": pending.get("tomorrow", False)}
 
     intent = it["intent"]
+    if intent == "unknown" and found:
+        return [f"📍 Listo, usaré {found['name']} ({found['department_name']}). ¿Qué quiere saber?\n"
+                "Escriba CLIMA, AVISOS o «¿cuándo puedo sembrar quinua?»."]
     if intent == "menu" or intent == "unknown":
         return [MENU] if intent == "menu" else ["No entendí bien 🤔.", MENU]
     if intent == "opt_out":
@@ -96,6 +100,16 @@ def handle(db: Session, key: str, text: str, user: User | None, mode: str = "rea
         return [_next_meeting(db, user)]
     if intent == "report":
         return _start_report(db, user, it.get("kind"), text, st)
+    if intent == "library":
+        return [_library(it.get("crop"))]
+    if intent == "my_crops":
+        if not user:
+            return ["Para guardar sus cultivos necesita una cuenta en AgroBolivia."]
+        names = ", ".join(user.crops) if user.crops else "ninguno todavía"
+        return [f"🌾 Sus cultivos de interés: {names}.\nPuede cambiarlos en la web, en Mi cuenta."]
+    if intent == "notices":
+        loc = _user_location(db, user, st)
+        return [_notices(db, user, loc)]
 
     loc = _user_location(db, user, st)
     if loc is None:
@@ -199,3 +213,27 @@ def _save_report(db, user, pending) -> str:
     except HTTPException as e:
         return f"⚠️ {e.detail}"
     return "✅ Gracias. Su reporte quedó registrado como observación comunitaria. Su representante lo verá."
+
+
+def _notices(db, user, loc) -> str:
+    from app.routers.notices import context_for, matching_notices, scope_label
+
+    ctx = context_for(loc["id"] if loc else None, user.crops if user else [])
+    rows = matching_notices(db, ctx)[:3]
+    where = f" para {loc['name']}" if loc else " nacionales (dígame su municipio para ver los de su zona)"
+    if not rows:
+        return f"📢 No hay avisos vigentes{where}."
+    lines = [f"📢 Avisos de la plataforma{where}:"]
+    for n in rows:
+        lines.append(f"• {n.title}{' (DEMO)' if n.is_demo else ''} — {scope_label(n)}")
+    lines.append("No son avisos oficiales. Oficiales: senamhi.gob.bo")
+    return "\n".join(lines)
+
+
+def _library(crop) -> str:
+    from app.routers.education import _library as lib
+
+    items = [i for i in lib()["items"] if not crop or i["crop"] in (None, crop)][:4]
+    lines = ["📚 Guías para aprender:"] + [f"• {i['title']} ({i['reading_minutes']} min)" for i in items]
+    lines.append("Léalas en la web, sección Aprender → Biblioteca.")
+    return "\n".join(lines)

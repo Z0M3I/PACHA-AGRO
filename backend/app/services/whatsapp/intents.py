@@ -24,6 +24,14 @@ def detect(text: str) -> dict:
     if t in ("hola", "buenas", "buenos dias", "buenas tardes", "menu", "ayuda", "inicio", "0"):
         return {"intent": "menu"}
 
+    first = t.split()[0] if t else ""
+    if first in ("avisos", "aviso", "alertas", "alerta") or t == "5":
+        return {"intent": "notices"}
+    if first in ("guias", "guia", "contenido", "contenidos", "educacion", "biblioteca") or t == "6":
+        return {"intent": "library", "crop": crop}
+    if first in ("cultivos", "cultivo", "mis") and ("cultivo" in t):
+        return {"intent": "my_crops"}
+
     report_words = {"cayo", "avisar", "reportar", "reporto", "aviso", "cae", "esta cayendo", "hubo"}
     kind = next((OBS_KINDS[w] for w in words if w in OBS_KINDS), None)
     if kind and (words & report_words or "en mi zona" in t):

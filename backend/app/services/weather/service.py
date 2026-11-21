@@ -5,7 +5,7 @@ from datetime import date, datetime, timezone
 
 import httpx
 
-from app.services.weather import nasa_power, open_meteo
+from app.services.weather import nasa_power, official, open_meteo
 from app.services.weather.base import Block, ProviderError
 from app.services.weather.simulated import simulated_forecast
 
@@ -17,7 +17,7 @@ OFFICIAL_ALERTS = {
                "Consulte los avisos oficiales en senamhi.gob.bo o en sus canales oficiales.",
 }
 
-_TTL = {"forecast": 3600, "recent": 6 * 3600, "climatology": 30 * 86400, "error": 300}
+_TTL = {"official": 900, "forecast": 3600, "recent": 6 * 3600, "climatology": 30 * 86400, "error": 300}
 
 
 class _Cache:
@@ -73,6 +73,25 @@ def _cached(kind: str, key: tuple, fn):
     return value
 
 
+def _forecast(lat: float, lon: float, key: tuple) -> Block:
+    """Fuente oficial primero (si está configurada); si falla, Open-Meteo. Los errores quedan registrados."""
+    from app.core.config import get_settings
+
+    errors = []
+    if get_settings().official_weather_url:
+        o = _cached("official", key, lambda: official.fetch_official(lat, lon, get_client()))
+        if isinstance(o, Block):
+            return o
+        errors.append(o["_error"])
+    f = _cached("forecast", key, lambda: open_meteo.fetch_forecast(lat, lon, get_client()))
+    if isinstance(f, Block):
+        if errors:
+            f.extra = {**f.extra, "fallback_from": errors}
+        return f
+    errors.append(f["_error"])
+    return Block(available=False, source=open_meteo.SOURCE, kind="pronostico", error=" ".join(errors))
+
+
 def get_weather(municipality: dict, mode: str = "real", today: date | None = None) -> dict:
     lat, lon = municipality["lat"], municipality["lon"]
     key = (round(lat, 2), round(lon, 2))
@@ -82,8 +101,7 @@ def get_weather(municipality: dict, mode: str = "real", today: date | None = Non
         recent = Block(available=False, source="—", kind="simulado", error="No se usa en modo simulado.")
         clim = {"available": False}
     else:
-        f = _cached("forecast", key, lambda: open_meteo.fetch_forecast(lat, lon, get_client()))
-        forecast = f if isinstance(f, Block) else Block(available=False, source=open_meteo.SOURCE, kind="pronostico", error=f["_error"])
+        forecast = _forecast(lat, lon, key)
         r = _cached("recent", key, lambda: nasa_power.fetch_recent(lat, lon, get_client(), today))
         recent = r if isinstance(r, Block) else Block(available=False, source=nasa_power.SOURCE, kind="estimacion", error=r["_error"])
         c = _cached("climatology", key, lambda: nasa_power.fetch_climatology(lat, lon, get_client()))

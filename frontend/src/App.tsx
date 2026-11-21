@@ -14,19 +14,26 @@ const CommunityDetail = lazy(() => import('./pages/CommunityDetail'))
 const WhatsApp = lazy(() => import('./pages/WhatsApp'))
 const Learn = lazy(() => import('./pages/Learn'))
 const Admin = lazy(() => import('./pages/Admin'))
+const Notices = lazy(() => import('./pages/Notices'))
+const Coverage = lazy(() => import('./pages/Coverage'))
+const Legal = lazy(() => import('./pages/Legal'))
 const Auth = lazy(() => import('./pages/Auth').then(m => ({ default: m.Login })))
 const Register = lazy(() => import('./pages/Auth').then(m => ({ default: m.Register })))
 const Profile = lazy(() => import('./pages/Auth').then(m => ({ default: m.Profile })))
 
 function Page({ parts }: { parts: string[] }) {
-  const [a, b] = parts
+  const [a, b, c] = parts
   switch (a) {
     case undefined: return <Home />
     case 'sembrar': return <Sow key={b ?? 'form'} demo={b === 'demo'} />
     case 'clima': return <Weather />
     case 'comunidad': return b && /^\d+$/.test(b) ? <CommunityDetail id={Number(b)} /> : <CommunityHome />
     case 'whatsapp': return <WhatsApp />
-    case 'aprender': return <Learn lessonId={b} />
+    case 'aprender': return <Learn lessonId={b} itemId={c} />
+    case 'avisos': return <Notices />
+    case 'cobertura': return <Coverage />
+    case 'privacidad': return <Legal doc="privacidad" />
+    case 'terminos': return <Legal doc="terminos" />
     case 'ingresar': return <Auth />
     case 'registro': return <Register />
     case 'perfil': return <Profile />
@@ -39,7 +46,9 @@ export default function App() {
   const parts = useRoute()
   const { user } = useApp()
   if (parts[0] === 'escritorio') return <Suspense fallback={<Loading />}><Desktop /></Suspense>
-  const nav = ['', 'sembrar', 'clima', 'comunidad', 'aprender'].includes(parts[0] ?? '') ? (parts[0] ?? '') : parts[0] === 'whatsapp' ? '' : 'comunidad'
+  const p0 = parts[0] ?? ''
+  const nav = ['', 'sembrar', 'clima', 'comunidad', 'aprender'].includes(p0) ? p0
+    : p0 === 'avisos' ? 'clima' : ['whatsapp', 'cobertura', 'privacidad', 'terminos'].includes(p0) ? '' : 'comunidad'
   return (
     <div className="min-h-screen pb-nav">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-30 focus:bg-papel focus:p-2">Ir al contenido</a>

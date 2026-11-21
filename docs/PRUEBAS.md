@@ -4,9 +4,9 @@ Ejecutadas el 21-11-2026. Todas reproducibles sin conexión a Internet (backend 
 
 | Suite | Comando | Resultado |
 |---|---|---|
-| Backend (pytest) | `cd backend && .venv/bin/python -m pytest` | **61/61** aprobadas |
+| Backend (pytest) | `cd backend && .venv/bin/python -m pytest` | **84/84** aprobadas |
 | Frontend unitarias (vitest) | `cd frontend && npm test` | **7/7** aprobadas |
-| Extremo a extremo (Playwright, Chromium, celular 360×740) | `node e2e/run.cjs http://localhost:8000` | **15/15** aprobadas (servidor recién iniciado) |
+| Extremo a extremo (Playwright, Chromium, celular 360×740) | `node e2e/run.cjs http://localhost:8000` | **20/20** aprobadas (servidor recién iniciado; también contra PostgreSQL actualizado) |
 | Tipos TypeScript + compilación | `cd frontend && npm run build` | Sin errores |
 
 ## Casos de prueba por área
@@ -20,6 +20,14 @@ Ejecutadas el 21-11-2026. Todas reproducibles sin conexión a Internet (backend 
 | Demo | En 360×740 la acción principal está en la primera pantalla y antes de «Todos los factores» | Sí | e2e |
 | Demo | Desde el caso simulado se pasa a datos reales | Desaparece la etiqueta de simulación | e2e |
 | Compartir | Mensaje con cultivo, municipio, resultado, «Orientación experimental» y, si aplica, «Caso simulado»; vista previa = mensaje enviado | Ambos modos verificados | `share.test.ts`, e2e |
+| Avisos regionales | Segmentación por alcance (9 casos), validación de jerarquía, vigencia, retiro, filtros públicos y «mis avisos» | Correctos | `test_ported` |
+| Avisos regionales | Agricultor no publica; la API no otorga admin; editor publica y notifica solo a quien corresponde (simulado) | 403 / 422 / correcto | `test_ported`, e2e |
+| Cultivos de interés | Guardar, quitar duplicados, rechazar cultivos inexistentes; avisos por cultivo aparecen | Sí | `test_ported`, e2e |
+| Biblioteca | 8 recursos con fuente; filtros por cultivo/tipo/departamento; 404 | Sí | `test_ported`, e2e |
+| Fuente oficial | Se prefiere si está configurada (con token); formato inválido → Open-Meteo; sin configurar no se llama | Sí (simulado) | `test_ported` |
+| WhatsApp | Estados enviado/entregado/leído/fallido sin retroceder; plantillas con BAJA; AVISOS/GUIAS; confirma municipio | Sí | `test_ported` |
+| Migración | Base vieja recibe columnas nuevas sin perder datos, idempotente; avisos DEMO se agregan a bases existentes | SQLite y PostgreSQL 16 | `test_ported`, manual |
+| Cobertura / legales | Estado por departamento solo con reglas y calendario; mapa; privacidad y términos | Sí | e2e |
 | Recomendación | Factor decisivo: rojo > amarillo, crítico antes que no crítico, sin datos no crítico no decide; acción principal por factor; explicación de confianza | Sí | `test_engine` (10 casos) |
 | Recomendación | Heladas −4 °C / −1 °C / sin helada | 🔴 / 🟡 / 🟢 con explicación que cita la temperatura | `test_engine` |
 | Recomendación | Suelo seco y secano / seco con riego | 🔴 / 🟡 | `test_engine` |

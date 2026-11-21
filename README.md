@@ -25,6 +25,11 @@ Prototipo funcional para hackatón universitaria. Integra los tracks **Comunicac
 | Panel de administración: comunidades, permisos, usuarios, reportes | ✅ |
 | Asistente de WhatsApp | 🧪 **SIMULADOR** (no conectado). Arquitectura y webhook oficial listos para credenciales |
 | Módulo educativo "Aprendamos sobre nuestro campo" (7 lecciones con preguntas y fuentes) | ✅ español · quechua/aimara pendientes de revisión lingüística |
+| Avisos regionales segmentados (nacional, departamento, municipio o cultivo), publicados por administradores o editores, con vigencia y etiqueta *no oficial* | ✅ |
+| Cultivos de interés en el perfil (filtran los avisos que recibe cada persona) | ✅ |
+| Biblioteca filtrable por cultivo, tipo y departamento (8 guías con nota de fuente) | ✅ |
+| Cobertura nacional (mapa de municipios y qué hay en cada departamento), privacidad y términos | ✅ |
+| Adaptador para fuente meteorológica oficial con contrato normalizado | ✅ listo; se activa con `OFFICIAL_WEATHER_URL` |
 | Avisos oficiales SENAMHI | ❌ no integrados (ver [docs/FUENTES_DATOS.md](docs/FUENTES_DATOS.md)); se enlaza al sitio oficial |
 
 Nada se presenta como algo que no es: los datos **simulados**, las **observaciones comunitarias**, los **datos ingresados por el agricultor** y los **pronósticos** llevan etiquetas distintas en la interfaz y en la API.
@@ -110,7 +115,7 @@ cd frontend && npm test
 node e2e/run.cjs http://localhost:8000
 ```
 
-Resultados actuales: **61/61** backend, **7/7** unitarias frontend, **15/15** extremo a extremo. Detalle en [docs/PRUEBAS.md](docs/PRUEBAS.md).
+Resultados actuales: **84/84** backend, **7/7** unitarias frontend, **20/20** extremo a extremo (también contra PostgreSQL actualizado desde la versión anterior). GitHub Actions ejecuta backend, frontend y build en cada push a `main` (`.github/workflows/ci.yml`). Detalle en [docs/PRUEBAS.md](docs/PRUEBAS.md).
 
 ## Documentación
 
@@ -121,6 +126,10 @@ Resultados actuales: **61/61** backend, **7/7** unitarias frontend, **15/15** ex
 - [docs/PRUEBAS.md](docs/PRUEBAS.md) — casos de prueba y resultados.
 - [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md) — despliegue en Render (recomendado) o Vercel.
 - [docs/LIMITACIONES.md](docs/LIMITACIONES.md) — lo que el prototipo **no** hace todavía.
+
+## Créditos
+
+Varias funciones se adaptaron del proyecto hermano **PACHAAGRO** ([Z0M3I/PACHAAGRO](https://github.com/Z0M3I/PACHAAGRO), licencia MIT, © 2026 Z0M3I): segmentación de avisos por alcance, cultivos de interés, biblioteca y sus guías, contrato de fuente meteorológica oficial, comandos y plantillas de WhatsApp, registro de estados de entrega, páginas de privacidad y términos, cobertura nacional, manifiesto web y CI. Se reescribieron para React + FastAPI; no se copió código de Next.js ni de Supabase.
 
 ## Aviso
 
