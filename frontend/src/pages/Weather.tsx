@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { LocationSelector } from '../components/LocationPicker'
-import { Button, Card, DataTag, ErrorBox, Loading, Notice, PageTitle, SimBanner } from '../components/ui'
+import { Button, Card, DataTag, ErrorBox, Loading, Notice, PageTitle } from '../components/ui'
 import { api } from '../lib/api'
 import { dayLabel, round, updatedAt, weatherIcon } from '../lib/format'
 import { useApp } from '../lib/store'
@@ -17,25 +17,28 @@ const FROST = {
 
 export default function Weather() {
   const { municipalityId, setMunicipalityId } = useApp()
-  const [mode, setMode] = useState<'real' | 'simulado'>('real')
   const [wx, setWx] = useState<W | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [map, setMap] = useState(false)
+  const [retry, setRetry] = useState(0)
 
-  const load = () => {
+  const load = () => setRetry(attempt => attempt + 1)
+  useEffect(() => {
     if (!municipalityId) return
+    let current = true
     setWx(null); setErr(null)
-    api<W>(`/api/weather?municipality_id=${municipalityId}&mode=${mode}`).then(setWx).catch(e => setErr(e.message))
-  }
-  useEffect(load, [municipalityId, mode])
+    api<W>(`/api/weather?municipality_id=${encodeURIComponent(municipalityId)}`, { timeoutMs: 65000 })
+      .then(value => { if (current) setWx(value) })
+      .catch(error => { if (current) setErr(error.message) })
+    return () => { current = false }
+  }, [municipalityId, retry])
 
   return (
     <div className="space-y-4">
       <PageTitle icon="🌦️" title="¿Cómo estará el clima?" />
-      <LocationSelector value={municipalityId} onChange={id => { setMode('real'); setMunicipalityId(id) }} />
+      <LocationSelector value={municipalityId} onChange={setMunicipalityId} />
       {!municipalityId ? null : err ? <ErrorBox message={err} onRetry={load} /> : !wx ? <Loading text="Buscando el pronóstico…" /> : (
         <>
-          {wx.mode === 'simulado' && <SimBanner />}
           <FrostCard wx={wx} />
 
           {wx.forecast.available ? (
@@ -77,12 +80,9 @@ export default function Weather() {
             <Notice tone="warn">
               <p className="font-bold">No hay pronóstico disponible en este momento.</p>
               <p className="mt-1">{wx.forecast.error}</p>
-              <p className="mt-1">Puede intentar más tarde o ver una demostración con datos simulados.</p>
-              <div className="mt-3 flex flex-wrap gap-2"><Button variant="secondary" onClick={load}>Intentar de nuevo</Button>
-                <Button variant="secondary" onClick={() => setMode('simulado')}>Ver demostración</Button></div>
+              <Button className="mt-3" variant="secondary" onClick={load}>Intentar de nuevo</Button>
             </Notice>
           )}
-          {wx.mode === 'simulado' && <Button variant="secondary" className="w-full" onClick={() => setMode('real')}>Volver a datos reales</Button>}
 
           <StormCard wx={wx} />
           {wx.recent.available && <RecentCard wx={wx} />}

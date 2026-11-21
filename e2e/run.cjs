@@ -36,11 +36,11 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await btn(p, /^Ingresar$/).click(); await p.waitForSelector('text=Comunidad Demo Challapata')
   }
 
-  await test('Inicio: las 4 acciones principales son visibles sin desplazarse (360×740)', async () => {
+  await test('Inicio: acceso a siembra y clima visible sin desplazarse (360×740)', async () => {
     const p = await newPage()
     await p.goto(BASE)
-    const navTop = (await p.locator('nav[aria-label="Navegación principal"]').boundingBox()).y
-    for (const t of ['¿Cuándo puedo sembrar?', '¿Cómo estará el clima?', 'Mi comunidad', 'Consultar por WhatsApp']) {
+    const navTop = (await p.locator('.site-nav-mobile').boundingBox()).y
+    for (const t of ['Consultar condiciones de siembra', 'Elegir municipio']) {
       const b = await p.getByRole('link', { name: new RegExp(t.replace(/[?¿]/g, '.')) }).first().boundingBox()
       assert(b && b.y + b.height * 0.5 < navTop, `"${t}" no es visible sobre la navegación`)
     }
@@ -53,7 +53,7 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await p.goto(BASE)
     const t0 = Date.now(); let taps = 0
     const tap = async (l) => { await l.click(); taps++ }
-    await tap(p.getByRole('link', { name: /Cuándo puedo sembrar/ }).first())
+    await tap(p.getByRole('link', { name: /Consultar condiciones de siembra/ }).first())
     for (const t of [/^Oruro$/, /Challapata/, /Quinua/, /Pandela/, /Sí, está húmedo/, /Depende de la lluvia/]) await tap(btn(p, t))
     await p.waitForSelector('text=¿Por qué?')
     const status = await p.locator('section[aria-live]').first().innerText()
@@ -71,9 +71,9 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     assert(await p.locator('text=¿Por qué?').count() === 0, 'no debería mostrar criterios')
   })
 
-  await test('Clima: sin pronóstico se explica el problema y se ofrece demostración SIMULADA', async () => {
+  await test('Clima: sin pronóstico se explica el problema y se puede reintentar', async () => {
     const p = await newPage()
-    await p.route('**/api/weather?*mode=real', async route => {
+    await p.route('**/api/weather?*', async route => {
       const r = await route.fetch(); const j = await r.json()
       j.forecast = { ...j.forecast, available: false, daily: [], error: 'Prueba: servicio de pronóstico caído.' }
       await route.fulfill({ response: r, json: j })
@@ -81,10 +81,8 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     await p.addInitScript(() => localStorage.setItem('agb_municipality', 'or-oruro'))
     await p.goto(`${BASE}/#/clima`)
     await p.waitForSelector('text=No hay pronóstico disponible')
-    await btn(p, /Ver demostración/).click()
-    await p.waitForSelector('text=DEMOSTRACIÓN')
-    assert(await p.locator('text=SIMULADO').count() > 0, 'falta etiqueta SIMULADO')
-    await p.screenshot({ path: `${OUT}/clima-simulado.png`, fullPage: true })
+    assert(await btn(p, /Intentar de nuevo/).isVisible(), 'falta reintento')
+    assert(await btn(p, /Ver demostración/).count() === 0, 'se ofrece clima simulado')
   })
 
   await test('Clima: error de red muestra mensaje comprensible y botón de reintento', async () => {
@@ -159,12 +157,35 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
   await test('Adaptación móvil: sin desplazamiento horizontal en todas las pantallas (320 px)', async () => {
     const p = await newPage({ viewport: { width: 320, height: 640 }, isMobile: true })
     const bad = []
-    for (const r of ['', 'sembrar', 'clima', 'comunidad', 'whatsapp', 'aprender', 'aprender/granizo', 'ingresar', 'registro']) {
+    for (const r of ['', 'sembrar', 'sembrar/comparar', 'clima', 'comunidad', 'whatsapp', 'aprender', 'aprender/granizo', 'ingresar', 'registro']) {
       await p.goto(`${BASE}/#/${r}`); await p.waitForTimeout(600)
       const w = await p.evaluate(() => document.documentElement.scrollWidth)
       if (w > 320) bad.push(`${r || 'inicio'}:${w}`)
     }
     assert(bad.length === 0, `desborde en ${bad.join(', ')}`)
+  })
+
+  await test('Comparador: consulta real y formato adaptable en móvil, tableta y escritorio', async () => {
+    for (const width of [360, 768, 1440]) {
+      const p = await newPage({ viewport: { width, height: 900 } })
+      await p.addInitScript(() => localStorage.setItem('agb_municipality', 'or-challapata'))
+      await p.goto(BASE)
+      assert(await p.getByRole('link', { name: 'Escritorio', exact: true }).count() === 0, 'la portada ofrece un modo de dispositivo')
+      await p.getByRole('link', { name: /Comparar suelos/ }).click()
+      await p.getByText('Challapata, Oruro', { exact: true }).waitFor()
+      const requests = []
+      p.on('request', req => {
+        if (req.url().endsWith('/api/recommendations') && req.method() === 'POST') requests.push(req.postDataJSON())
+      })
+      await btn(p, 'Comparar escenarios').click()
+      await p.getByRole('table').waitFor()
+      assert(requests.length === 2 && requests.every(r => r.mode === 'real' && r.municipality_id === 'or-challapata'), 'la consulta no usó el municipio y modo seleccionados')
+      const cards = await p.locator('.compare-result').all()
+      const [a, b] = await Promise.all(cards.map(card => card.boundingBox()))
+      assert(width === 360 ? b.y > a.y : b.x > a.x, `distribución incorrecta a ${width}px`)
+      assert(await p.evaluate(() => document.documentElement.scrollWidth) === width, `desborde a ${width}px`)
+      await p.context().close()
+    }
   })
 
   await test('Conexión lenta (≈400 kbps, 400 ms de latencia): inicio usable', async () => {
@@ -176,7 +197,7 @@ const assert = (c, m) => { if (!c) throw new Error(m) }
     let bytes = 0
     p.on('response', async r => { const l = Number(r.headers()['content-length'] || 0); bytes += l })
     const t0 = Date.now()
-    await p.goto(BASE); await p.getByRole('link', { name: /Cuándo puedo sembrar/ }).first().waitFor()
+    await p.goto(BASE); await p.getByRole('link', { name: /Consultar condiciones de siembra/ }).first().waitFor()
     const ms = Date.now() - t0
     assert(ms < 8000, `tardó ${ms} ms`)
     return `acciones visibles en ${(ms / 1000).toFixed(1)} s`

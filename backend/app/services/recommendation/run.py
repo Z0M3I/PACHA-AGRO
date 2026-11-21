@@ -3,8 +3,9 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.data.catalog import crops_config
-from app.models import Observation
+from app.models import Community, Observation, User
 from app.services.recommendation.builder import weather_view
 from app.services.recommendation.engine import Answers, evaluate
 from app.services.weather.service import get_weather
@@ -12,9 +13,14 @@ from app.services.weather.service import get_weather
 
 def community_reports(db: Session, municipality_id: str, kind: str, days: int = 7) -> int:
     since = datetime.now() - timedelta(days=days)
-    return db.scalar(select(func.count(Observation.id)).where(
+    query = select(func.count(Observation.id)).where(
         Observation.municipality_id == municipality_id, Observation.kind == kind,
-        Observation.review_status != "descartada", Observation.observed_at >= since)) or 0
+        Observation.review_status != "descartada", Observation.observed_at >= since)
+    if not get_settings().seed_demo:
+        query = (query.join(Community, Observation.community_id == Community.id)
+                 .join(User, Observation.user_id == User.id)
+                 .where(Community.is_demo.is_(False), User.is_demo.is_(False)))
+    return db.scalar(query) or 0
 
 
 def recommend(db: Session, municipality: dict, answers: Answers, mode: str = "real", today: date | None = None) -> dict:

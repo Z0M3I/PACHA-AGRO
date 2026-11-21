@@ -34,7 +34,7 @@ El archivo `render.yaml` (Blueprint) crea:
 
 - El servicio **se duerme tras unos 15 minutos sin visitas**; la siguiente visita tarda ~1 minuto en despertar. **Ábralo antes de presentar.**
 - La base PostgreSQL gratuita de Render **vence después de un tiempo** (según la política actual, unos 30 días). Para la hackatón alcanza; luego pase a un plan pagado o a Neon. Verifique las condiciones vigentes en render.com/pricing.
-- Open-Meteo gratuito cuenta consultas por IP; si se agota, la app usa NASA POWER y ofrece la demostración simulada.
+- Open-Meteo gratuito cuenta consultas por IP; si se agota, la app usa NASA POWER si hay datos históricos disponibles.
 
 ## Verificado antes de publicar
 
@@ -80,7 +80,7 @@ Configuración ya incluida en el repositorio: `vercel.json`, `api/index.py`, `re
    | `SECRET_KEY` | un texto largo y aleatorio (ver abajo) |
    | `ADMIN_PHONE` | su celular con prefijo, ej. `+59171234567` |
    | `ADMIN_PASSWORD` | una clave segura para el administrador |
-   | `SEED_DEMO` | `true` (crea las cuentas y la comunidad de demostración) |
+   | `SEED_DEMO` | `false` en producción. Use `true` para pruebas con cuentas ficticias. |
 
    Para generar `SECRET_KEY`:
    ```bash
@@ -100,7 +100,7 @@ Vercel publica en producción la rama **`main`**. Si el código está en otra ra
 
 - **Arranque en frío**: la primera petición tras un rato inactivo tarda unos segundos más. Abra la app antes de presentar.
 - **Estado en memoria por instancia**: caché del clima, conversaciones del simulador de WhatsApp y límites de intentos se reinician cuando Vercel recicla la función. Funciona para la demo; en producción usar Redis.
-- **Open-Meteo gratuito** cuenta las consultas por IP; en plataformas en la nube la IP puede ser compartida y alcanzar el límite. La app muestra entonces historial de NASA POWER y ofrece la demostración simulada.
+- **Open-Meteo gratuito** cuenta las consultas por IP; en plataformas en la nube la IP puede ser compartida y alcanzar el límite. La app muestra entonces historial de NASA POWER si hay datos históricos disponibles.
 - **WhatsApp real** necesita la URL pública HTTPS de Vercel como webhook: `https://<su-proyecto>.vercel.app/api/whatsapp/webhook` (ver `WHATSAPP.md`).
 
 ## Verificado antes de publicar
@@ -110,3 +110,5 @@ Vercel publica en producción la rama **`main`**. Si el código está en otra ra
 - Suite e2e completa (13/13) ejecutada contra **PostgreSQL 16**.
 - La inicialización de la base de datos tolera varias instancias arrancando a la vez.
 - No se pudo hacer un despliegue real desde el entorno de desarrollo (requiere su cuenta de Vercel).
+
+Los servicios de Render existentes deben tener `SEED_DEMO=false` en **Environment**. Con este ajuste se ocultan las comunidades ficticias, se desactivan sus accesos y sus observaciones quedan fuera de las recomendaciones. Los registros se conservan en la base de datos.

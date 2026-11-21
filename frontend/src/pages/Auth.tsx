@@ -26,10 +26,6 @@ export function Login() {
       {err && <p role="alert" className="font-semibold text-rojo">⚠️ {err}</p>}
       <Button className="w-full" disabled={busy}>{busy ? 'Ingresando…' : 'Ingresar'}</Button>
       <a href="#/registro" className="block min-h-12 py-3 text-center text-lg font-semibold text-bosque underline underline-offset-4">¿No tiene cuenta? Regístrese</a>
-      <Notice tone="sim">
-        <p className="font-bold">Cuentas de DEMOSTRACIÓN (ficticias)</p>
-        <p>Representante: <strong>70000001</strong> · Agricultora: <strong>70000002</strong> · Clave: <strong>demo1234</strong></p>
-      </Notice>
     </form>
   )
 }

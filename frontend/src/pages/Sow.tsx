@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DepartmentList, MunicipalityList, OptionButton } from '../components/LocationPicker'
-import { Button, Card, DataTag, ErrorBox, Loading, Notice, PageTitle, STATUS_UI, SimBanner } from '../components/ui'
+import { Button, Card, DataTag, ErrorBox, Loading, Notice, PageTitle, STATUS_UI } from '../components/ui'
 import { api } from '../lib/api'
 import { useApp } from '../lib/store'
 import type { Crop, Recommendation } from '../lib/types'
@@ -17,7 +17,6 @@ export default function Sow() {
   const [err, setErr] = useState<string | null>(null)
   const [result, setResult] = useState<Recommendation | null>(null)
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState<'real' | 'simulado'>('real')
 
   const loadCrops = () => { setErr(null); api<{ crops: Crop[] }>('/api/crops').then(d => setCrops(d.crops)).catch(e => setErr(e.message)) }
   useEffect(loadCrops, [])
@@ -25,13 +24,13 @@ export default function Sow() {
   const set = (k: keyof Answers, v: string) => { setA(p => ({ ...p, [k]: v })); setStep(s => s + 1) }
   const useSaved = () => { if (saved) { setA({ dept: saved.department_id, muni: saved.id }); setStep(2) } }
 
-  const submit = async (irrigation: string, m: 'real' | 'simulado' = mode) => {
+  const submit = async (irrigation: string) => {
     const ans = { ...a, irrigation }
-    setA(ans); setLoading(true); setErr(null); setMode(m)
+    setA(ans); setLoading(true); setErr(null)
     try {
-      const r = await api<Recommendation>('/api/recommendations', { body: {
+      const r = await api<Recommendation>('/api/recommendations', { timeoutMs: 65000, body: {
         municipality_id: ans.muni, crop: ans.crop, variety: ans.variety === 'Otra / no sé' ? null : ans.variety,
-        soil_moisture: ans.moisture, irrigation: ans.irrigation, mode: m } })
+        soil_moisture: ans.moisture, irrigation: ans.irrigation, mode: 'real' } })
       setResult(r)
       if (ans.muni) setMunicipalityId(ans.muni)
     } catch (e) { setErr((e as Error).message) } finally { setLoading(false) }
@@ -40,7 +39,7 @@ export default function Sow() {
   const restart = () => { setA({}); setStep(0); setResult(null) }
 
   if (loading) return <><PageTitle icon="🌱" title="¿Cuándo puedo sembrar?" /><Loading text="Revisando clima y calendario…" /></>
-  if (result) return <Result r={result} onRestart={restart} onSimulate={() => submit(a.irrigation!, 'simulado')} onReal={() => submit(a.irrigation!, 'real')} />
+  if (result) return <Result r={result} onRestart={restart} />
 
   const crop = crops?.find(c => c.id === a.crop)
   const muni = findMunicipality(a.muni ?? null)
@@ -71,7 +70,7 @@ export default function Sow() {
               return (
                 <OptionButton key={c.id} selected={a.crop === c.id} onClick={() => set('crop', c.id)}>
                   <span className="text-3xl" aria-hidden="true">{c.emoji}</span><span className="block">{c.name}</span>
-                  <span className="block text-sm font-normal text-musgo">{st === 'implemented' ? 'Disponible' : st === 'demo' ? 'Demostración' : 'Sin reglas aún'}</span>
+                  <span className="block text-sm font-normal text-musgo">{st === 'implemented' ? 'Disponible' : st === 'demo' ? 'Reglas preliminares' : 'Sin reglas aún'}</span>
                 </OptionButton>
               )
             })}
@@ -101,29 +100,26 @@ function Q({ n, text }: { n: number; text: string }) {
   return <h2 className="mb-3 text-[1.4rem] font-bold leading-snug"><span className="sr-only">Pregunta {n}: </span>{text}</h2>
 }
 
-function Result({ r, onRestart, onSimulate, onReal }: { r: Recommendation; onRestart: () => void; onSimulate: () => void; onReal: () => void }) {
+function Result({ r, onRestart }: { r: Recommendation; onRestart: () => void }) {
   const ui = STATUS_UI[r.status]
-  const share = encodeURIComponent(`AgroBolivia — ${r.crop_name} en ${r.location.name}: ${ui.emoji} ${r.headline}. ${r.summary} (Orientación de prototipo, consulte a su técnico.)`)
+  const share = encodeURIComponent(`AgroBolivia — ${r.crop_name} en ${r.location.name}: ${ui.emoji} ${r.headline}. ${r.summary} (Orientación experimental, consulte a su técnico.)`)
   const noForecast = r.weather_summary && !r.weather_summary.forecast_available && r.mode === 'real'
   return (
     <div className="space-y-4">
       <PageTitle icon="🌱" title={`${r.crop_name} en ${r.location.name}`} subtitle={`${r.location.department_name}${r.variety ? ` · ${r.variety}` : ''}`} />
-      {r.mode === 'simulado' && <SimBanner />}
-      {r.scenario_status === 'demo' && <Notice tone="warn"><strong>Escenario de demostración.</strong> {r.scenario_label}</Notice>}
+      {r.scenario_status === 'demo' && <Notice tone="warn"><strong>Reglas preliminares.</strong> {r.scenario_label}</Notice>}
 
       <section aria-live="polite" className={`rounded-2xl border-2 p-5 ${ui.box}`}>
         <div className={`flex items-center gap-3 text-[1.6rem] font-bold leading-tight ${ui.ink}`}><span className="text-4xl" aria-hidden="true">{ui.emoji}</span>{r.headline}</div>
         <p className="mt-2 text-lg">{r.summary}</p>
-        {r.status !== 'gris' && <p className="mt-2 text-sm text-musgo">Confianza: <strong>{r.confidence}</strong>. Es una orientación, no una fecha exacta de siembra.</p>}
+        {r.status !== 'gris' && <p className="mt-2 text-sm text-musgo">Disponibilidad de datos: <strong>{r.confidence}</strong>. Las reglas son experimentales y requieren validación agronómica.</p>}
       </section>
 
       {noForecast && (
         <Notice tone="warn">
-          <strong>Sin pronóstico ahora.</strong> {r.weather_summary?.forecast_error} Usamos el historial de NASA POWER, por eso la confianza es baja.
-          <div className="mt-2"><Button variant="secondary" onClick={onSimulate}>Ver demostración con datos simulados</Button></div>
+          <strong>Sin pronóstico ahora.</strong> {r.weather_summary?.forecast_error} {r.weather_summary?.recent_source ? 'La consulta incluye datos históricos disponibles.' : 'Revise los criterios que tienen datos disponibles.'}
         </Notice>
       )}
-      {r.mode === 'simulado' && <Button variant="secondary" className="w-full" onClick={onReal}>Volver a datos reales</Button>}
 
       {r.criteria.length > 0 && (
         <section>

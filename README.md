@@ -14,7 +14,7 @@ Prototipo funcional para hackatón universitaria. Integra los tracks **Comunicac
 
 | Función | Estado |
 |---|---|
-| Página principal con 4 acciones visibles sin desplazarse (probado en 360×740) | ✅ |
+| Página principal con navegación que se adapta a móvil, tableta y escritorio | ✅ |
 | Selección de departamento → municipio → cultivo (9 departamentos, 32 municipios) | ✅ |
 | Clima: pronóstico **Open-Meteo**, historial y climatología **NASA POWER**, riesgo de helada, tormentas | ✅ datos reales (con caché y respaldo) |
 | Recomendación de siembra explicable 🟢🟡🔴⚪ | ✅ **Quinua en el Altiplano** (Oruro, Potosí, La Paz) · 🧪 Papa y Maíz en modo *demostración* · ⚪ Haba y Cebada sin reglas |
@@ -58,7 +58,7 @@ cd frontend && npm run dev
 
 (Vite en <http://localhost:5173> redirige `/api` al backend.)
 
-### Cuentas de demostración (ficticias, `SEED_DEMO=true`)
+### Cuentas ficticias para pruebas locales (`SEED_DEMO=true`)
 
 | Rol | Celular | Clave |
 |---|---|---|
@@ -68,12 +68,14 @@ cd frontend && npm run dev
 
 ### Guion de demostración para el jurado (≈4 min)
 1. **Inicio → ¿Cuándo puedo sembrar?** Oruro → Challapata → Quinua → Pandela → Sí, húmedo → Depende de la lluvia. Resultado en 7 toques, con el *porqué* de cada criterio y su fuente.
-2. **Clima**: pronóstico real, riesgo de helada, historial NASA POWER, enlace a SENAMHI. Si el pronóstico no responde, se ve el mensaje claro y el botón "Ver demostración" (etiquetado SIMULADO).
+2. **Clima**: pronóstico real, riesgo de helada, historial NASA POWER, enlace a SENAMHI. Si el pronóstico no responde, se muestra el estado y se puede reintentar.
 3. **Comunidad** (representante 70000001): convocar reunión → "Recordar" (genera recordatorios *simulados* solo para quienes aceptaron WhatsApp).
 4. **WhatsApp** (agricultora 70000002): "¿Cuándo es la reunión de mi comunidad?" → "SI" → la asistencia se registra. "Quiero avisar que cayó granizo en mi zona." → queda como *observación comunitaria*.
 5. **Aprender**: lección "¿Qué es una helada?" con pregunta.
 
 ## Desplegar
+
+Use `SEED_DEMO=false` en producción. En **Sembrar → Comparar condiciones** puede evaluar dos niveles de humedad para quinua en el municipio seleccionado.
 
 - **Render (recomendado):** *New + → Blueprint* → elegir este repositorio. `render.yaml` crea el servicio (Docker) y la base PostgreSQL; solo pide `ADMIN_PHONE` y `ADMIN_PASSWORD`.
 - **Vercel (alternativa):** ya configurado con `vercel.json` y `api/index.py`; requiere conectar PostgreSQL (Neon).

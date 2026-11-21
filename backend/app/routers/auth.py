@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.ratelimit import client_key, login_limiter, register_limiter
 from app.core.security import create_token, hash_password, verify_password
 from app.data.catalog import get_municipality
@@ -37,7 +38,8 @@ def register(body: RegisterIn, request: Request, db: Session = Depends(get_db)):
 def login(body: LoginIn, request: Request, db: Session = Depends(get_db)):
     login_limiter.check(f"{client_key(request)}:{body.phone}")
     user = db.scalar(select(User).where(User.phone == body.phone))
-    if not user or not user.is_active or not verify_password(body.password, user.password_hash):
+    if (not user or not user.is_active or (user.is_demo and not get_settings().seed_demo)
+            or not verify_password(body.password, user.password_hash)):
         raise HTTPException(401, "Número o clave incorrectos.")
     return {"token": create_token(user.id), "user": UserOut.model_validate(user)}
 

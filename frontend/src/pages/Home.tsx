@@ -1,76 +1,66 @@
 import { useEffect, useState } from 'react'
-import { HeroArt } from '../components/Logo'
 import { api } from '../lib/api'
 import { useApp } from '../lib/store'
 import { round } from '../lib/format'
 import type { Weather } from '../lib/types'
 
-const ACTIONS = [
-  { href: '#/sembrar', icon: '🌱', title: '¿Cuándo puedo sembrar?', text: 'Orientación según su lugar, cultivo y terreno.', cls: 'bg-bosque text-white', sub: 'text-brote' },
-  { href: '#/clima', icon: '🌦️', title: '¿Cómo estará el clima?', text: 'Heladas, lluvias y temperaturas.', cls: 'bg-papel text-bosque border-2 border-bosque', sub: 'text-musgo' },
-  { href: '#/comunidad', icon: '👨‍🌾', title: 'Mi comunidad', text: 'Reuniones, avisos y reportes.', cls: 'bg-tierra text-white', sub: 'text-tierra-100' },
-  { href: '#/whatsapp', icon: '💬', title: 'Consultar por WhatsApp', text: 'Pregunte como en un chat.', cls: 'bg-papel text-tierra border-2 border-tierra', sub: 'text-musgo' },
+const sections = [
+  { href: '#/sembrar/comparar', title: 'Comparar suelos', text: 'Vea cómo cambia la orientación si varía la humedad del terreno.' },
+  { href: '#/comunidad', title: 'Comunidad', text: 'Consulte avisos, participe en reuniones y registre observaciones del campo.' },
+  { href: '#/aprender', title: 'Guías de campo', text: 'Aprenda a interpretar heladas, lluvias y humedad del suelo.' },
 ]
 
 export default function Home() {
   return (
-    <div>
-      <section className="relative -mx-4 -mt-4 mb-4 overflow-hidden bg-brote-50 px-4 pt-4">
-        <h1 className="relative z-[1] max-w-[17rem] font-display text-[1.6rem] font-bold leading-[1.1] text-bosque min-[420px]:max-w-none">Tu campo, tu comunidad, mejores decisiones.</h1>
-        <p className="relative z-[1] mt-1 text-[0.95rem] leading-snug text-musgo">Consulta el clima, planifica tus siembras y mantente conectado con tu comunidad.</p>
-        <div className="-mb-1 mt-1 h-14 overflow-hidden min-[420px]:h-20"><HeroArt /></div>
-      </section>
-
-      <nav aria-label="Acciones principales" className="grid grid-cols-2 gap-3">
-        {ACTIONS.map(a => (
-          <a key={a.href} href={a.href} className={`flex min-h-28 flex-col justify-between gap-2 rounded-2xl p-3.5 ${a.cls}`}>
-            <span className="text-[2.2rem] leading-none" aria-hidden="true">{a.icon}</span>
-            <span>
-              <span className="block text-[1.12rem] font-bold leading-tight">{a.title}</span>
-              <span className={`mt-1 hidden text-[0.92rem] leading-snug min-[400px]:block [@media(min-height:800px)]:block ${a.sub}`}>{a.text}</span>
-            </span>
+    <>
+      <div className="home-grid">
+        <section className="home-intro">
+          <h1>Siembra y clima<br />en Bolivia</h1>
+          <p>Consulte el pronóstico de su municipio y revise las condiciones para sembrar quinua en el Altiplano.</p>
+          <a className="site-primary" href="#/sembrar">Consultar condiciones de siembra</a>
+        </section>
+        <QuickWeather />
+      </div>
+      <nav className="home-sections" aria-label="Herramientas y recursos">
+        {sections.map(section => (
+          <a key={section.href} href={section.href}>
+            <h2>{section.title}</h2>
+            <p>{section.text}</p>
           </a>
         ))}
       </nav>
-
-      <QuickWeather />
-
-      <a href="#/aprender" className="mt-4 flex items-center gap-4 rounded-2xl border border-linea bg-papel p-4">
-        <span className="text-4xl" aria-hidden="true">📚</span>
-        <span><span className="block text-xl font-bold text-bosque">Aprendamos sobre nuestro campo</span>
-          <span className="text-musgo">Heladas, granizo, humedad del suelo y más. Lecciones de 2 minutos.</span></span>
-      </a>
-      <p className="mt-5 text-center text-sm text-musgo">Prototipo para hackatón. Las orientaciones no reemplazan a un técnico agrícola ni a los avisos oficiales del SENAMHI.</p>
-    </div>
+      <p className="site-note">La orientación de siembra usa reglas experimentales pendientes de validación agronómica.</p>
+    </>
   )
 }
 
 function QuickWeather() {
   const { municipalityId, findMunicipality } = useApp()
-  const m = findMunicipality(municipalityId)
-  const [wx, setWx] = useState<Weather | null>(null)
-  const [failed, setFailed] = useState(false)
+  const municipality = findMunicipality(municipalityId)
+  const [weather, setWeather] = useState<{ id: string; value: Weather | null }>()
+  const id = municipality?.id
   useEffect(() => {
-    if (!m) return
-    setWx(null); setFailed(false)
-    api<Weather>(`/api/weather?municipality_id=${m.id}`).then(setWx).catch(() => setFailed(true))
-  }, [m?.id])
-  if (!m) return null
-  const today = wx?.forecast.available ? wx.forecast.daily[0] : null
-  const risk = wx?.frost_risk.level
+    if (!id) return
+    let current = true
+    api<Weather>(`/api/weather?municipality_id=${encodeURIComponent(id)}`, { timeoutMs: 65000 })
+      .then(value => { if (current) setWeather({ id, value }) })
+      .catch(() => { if (current) setWeather({ id, value: null }) })
+    return () => { current = false }
+  }, [id])
+  const current = weather?.id === id ? weather?.value : undefined
+  const today = current?.forecast.available ? current.forecast.daily[0] : undefined
   return (
-    <a href="#/clima" className="mt-4 block rounded-2xl border border-linea bg-papel p-4">
-      <div className="text-sm text-musgo">📍 {m.name}, {m.department_name}</div>
-      {!wx && !failed && <div className="mt-1 text-musgo">Cargando clima…</div>}
-      {failed && <div className="mt-1 text-musgo">No se pudo cargar el clima. Toque para reintentar.</div>}
-      {wx && (today ? (
-        <div className="mt-1 flex items-baseline justify-between gap-2">
-          <span className="text-lg">Hoy: mín <strong>{round(today.tmin)}</strong> · máx <strong>{round(today.tmax)}</strong></span>
-          <span className={`font-bold ${risk === 'alto' ? 'text-rojo' : risk === 'medio' ? 'text-sol-ink' : 'text-bosque'}`}>
-            {risk === 'alto' ? '❄️ Helada fuerte' : risk === 'medio' ? '❄️ Helada posible' : '✅ Sin helada'} (7 días)
-          </span>
+    <section className="home-weather">
+      <h2>Pronóstico local</h2>
+      {municipality ? <p>{municipality.name}, {municipality.department_name}</p> : <p>Elija un municipio para consultar lluvia, temperatura y riesgo de helada.</p>}
+      {municipality && (today ? (
+        <div className="home-temperatures">
+          <div><strong>{round(today.tmin)}</strong><span>Mínima</span></div>
+          <div><strong>{round(today.tmax)}</strong><span>Máxima</span></div>
         </div>
-      ) : <div className="mt-1 text-sol-ink">Pronóstico no disponible ahora. Toque para ver más.</div>)}
-    </a>
+      ) : <p role="status">{current === undefined ? 'Consultando la fuente meteorológica…' : 'Pronóstico no disponible en este momento.'}</p>)}
+      {today && <p className="site-note">{current?.forecast.source}</p>}
+      <a className="site-text-link" href="#/clima">{municipality ? 'Ver pronóstico completo' : 'Elegir municipio'}</a>
+    </section>
   )
 }
